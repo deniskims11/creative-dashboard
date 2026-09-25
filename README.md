@@ -32,8 +32,10 @@ So the parser reads **three** fields together:
 | Ad set name | launch date corroboration |
 | Ad name (prefix families) | family, creative no., format, concept, persona, editor, version, hook variant |
 
-Coverage on a real 84-ad sample: angle 85%, buying type 98%, concept 90%,
-creative no. 82%.
+Coverage measured on 301 live Natural Rems creatives: angle 81%, buying type
+97%, concept 88%, creative no. 75%, version 72%. About 25% of ad names fall
+into no recognised family at all (`Post BFCM 15`, `jn13`, `Dr Sebi VSL 9 V4`)
+— those surface as `(untagged)` rather than being guessed at.
 
 **Launch date** comes from the first day a creative recorded spend, not from a
 name token — only about a third of Natural Rems ads carry a date in the name.
@@ -88,7 +90,10 @@ python3 scripts/parse_ad_name.py --coverage
 ## Status / known gaps
 
 - [ ] `TW_CLIENT_ID` / `TW_CLIENT_SECRET` not yet set — dashboard ships with an
-      empty manifest until they are.
+      empty manifest until they are. Triple Whale's CSV export is broken for this
+      account (opening the export dialog clears the table), and its Sheets export
+      targets a Google account that is not the repo owner's, so the API key is the
+      only viable path to a full dataset.
 - [ ] The API endpoint and auth flow in `fetch_triplewhale.py` mirror the
       request the Triple Whale app itself sends; **they have not been executed
       against a real API key yet** and may need adjustment on first run.
