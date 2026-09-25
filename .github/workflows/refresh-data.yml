@@ -1,0 +1,58 @@
+name: Refresh Triple Whale data
+
+on:
+  schedule:
+    # Every 4 hours.
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Until the Triple Whale API key exists this job should no-op rather
+      # than fail, so the repo does not sit permanently red.
+      - name: Check for credentials
+        id: creds
+        env:
+          TW_CLIENT_ID: ${{ secrets.TW_CLIENT_ID }}
+        run: |
+          if [ -z "$TW_CLIENT_ID" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::TW_CLIENT_ID not set — skipping refresh. Add the Triple Whale API credentials as repo secrets to enable it."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch Triple Whale data
+        if: steps.creds.outputs.present == 'true'
+        env:
+          TW_CLIENT_ID: ${{ secrets.TW_CLIENT_ID }}
+          TW_CLIENT_SECRET: ${{ secrets.TW_CLIENT_SECRET }}
+        run: python scripts/fetch_triplewhale.py
+
+      - name: Commit refreshed data
+        if: steps.creds.outputs.present == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/latest.json public/data/history/
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "chore(data): refresh Triple Whale $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
