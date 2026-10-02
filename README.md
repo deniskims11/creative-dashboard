@@ -9,15 +9,46 @@ Natural Rems' ad-naming conventions.
 ## How it works
 
 ```
-Triple Whale API ──► scripts/fetch_triplewhale.py ──► public/data/latest.json ──► React SPA
-   (every 4h)          parse_ad_name.py                + history/*.json.gz
+MASTER workbook ──► scripts/build_from_master_xlsx.py ─┐
+  (reviewed naming, manual)                            ├─► public/data/latest.json ──► React SPA
+Triple Whale API ──► scripts/fetch_triplewhale.py ─────┘      + history/*.json.gz
+  (every 4h, once credentials exist)
 ```
+
+**The dashboard currently runs on the MASTER workbook**, not the API. That
+workbook is a reviewed naming artefact: a human classified every creative
+against its video transcript, so the dimensions are read straight off columns
+rather than inferred from ad names.
 
 No backend. A GitHub Action refreshes the data every four hours and commits
 it; GitHub Pages serves a static build that reads `latest.json` in the browser
 and derives every view client-side.
 
-## Naming conventions
+## Current data: the MASTER workbook
+
+`Natural_Rems_MASTER_Ad_Names_Spend_NCROAS_552.xlsx` carries 552 creatives with
+a reviewed nine-field taxonomy — Ad Number | Product | Angle | Sub-Angle |
+Concept | ICP | Script | Format | Awareness Stage — plus spend, NCROAS, NCCPA,
+new-customer revenue/orders and pixel revenue/orders.
+
+```bash
+python3 scripts/build_from_master_xlsx.py ~/Downloads/Natural_Rems_MASTER_Ad_Names_Spend_NCROAS_552.xlsx
+```
+
+Coverage: 525/552 fully reviewed (95%), 27 source-incomplete rows keep their
+performance data and show as `(untagged)`.
+
+### Scope limits — surfaced in the UI, not buried here
+
+- **552 video/dynamic ads only. 108 static ads are excluded by design.**
+- **One ad account** (`act_944402037249956`) of the four on this shop.
+- June 1 – September 20 2026, Triple Attribution, 7-day, purchase-date basis.
+
+Win rates and any other ratio therefore describe *this reviewed video
+population*, not the whole account. The dashboard shows a scope banner saying
+so on every tab.
+
+## Naming conventions (Triple Whale API path)
 
 Natural Rems does not use one ad-naming convention — it has several prefix
 families that accumulated over time (`NRYM23_…`, `YVS_MUCUS_099_ASIM_V1`,

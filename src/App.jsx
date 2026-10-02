@@ -13,7 +13,7 @@ const fmtFull = (n) => `$${Math.round(n).toLocaleString()}`;
 const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString();
 const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 
-const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "Editors", "Breakdowns", "Analysis", "Data Clean Up"];
+const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "ICP", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
 
 const RoasBadge = ({ roas }) => {
@@ -122,7 +122,7 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
   if (!open) return null;
 
   const downloadCsv = () => {
-    const headers = ["ad_name", "convention", "family", "angle", "format", "concept", "creative_no", "version", "hook_variant", "persona", "editor", "buying_type", "batch", "launch_date", "spend", "rev", "txns", "pixel_rev", "pixel_txns", "nc_txns", "clicks", "impressions"];
+    const headers = ["ad_name", "new_ad_name", "creative_no", "product", "angle", "sub_angle", "concept", "icp", "script", "format", "awareness_stage", "naming_status", "buying_type", "campaign", "adset", "spend", "rev", "txns", "nc_rev", "nc_txns", "ncroas", "nccpa", "spend_rank"];
     const escape = (v) => v == null ? "" : typeof v === "string" && /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : String(v);
     const lines = [headers.join(",")];
     for (const a of sortedAds) {
@@ -236,11 +236,12 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
     { key: "creatives", label: "Ads" },
     { key: "spend", label: "Spend" },
     { key: "revenue", label: "Revenue" },
-    { key: "roas", label: "ROAS" },
+    { key: "roas", label: "Pixel ROAS" },
+    { key: "ncroas", label: "NCROAS" },
     { key: "pct_new", label: "% New Cust." },
-    { key: "purchases", label: "Purchases" },
+    { key: "purchases", label: "Orders" },
     { key: "aov", label: "AOV" },
-    { key: "cpm", label: "CPM" },
+    { key: "nccpa", label: "NC CPA" },
     { key: "winRate1k", label: "WR $1K" },
     { key: "winRate15k", label: "WR $15K" },
     { key: "winRate50k", label: "WR $50K" },
@@ -263,10 +264,11 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
             <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}</td>
             <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /></td>
+            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} /></td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.cpm ? `$${r.cpm.toFixed(1)}` : "—"}</td>
+            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate1k)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate15k)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate50k)}</td>
@@ -439,7 +441,13 @@ export default function Dashboard() {
   const wrData = useMemo(() => winRate(ads, wrFormat), [ads, wrFormat]);
   const concepts = useMemo(() => toBreakdownRows(groupBy(ads, "concept")), [ads]);
   const angles = useMemo(() => toBreakdownRows(groupBy(ads, "angle")), [ads]);
-  const editors = useMemo(() => toBreakdownRows(groupBy(ads, "editor")), [ads]);
+  const icps = useMemo(() => toBreakdownRows(groupBy(ads, "icp")), [ads]);
+  const awareness = useMemo(() => toBreakdownRows(groupBy(ads, "awareness_stage")), [ads]);
+  const scripts = useMemo(() => toBreakdownRows(groupBy(ads, "script")), [ads]);
+  const formatList = useMemo(
+    () => Array.from(new Set(ads.map(a => a.format).filter(Boolean))).sort(),
+    [ads]
+  );
   const formats = useMemo(() => toBreakdownRows(groupBy(ads, "format")), [ads]);
 
   // Creator × Concept with filter
@@ -624,11 +632,11 @@ export default function Dashboard() {
   if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading Triple Whale data…</div>;
 
   const ALL_DIMS_LABELS = {
-    angle: "Angle", format: "Format", concept: "Concept", family: "Name Family",
-    creative_no: "Creative No.", version: "Version", hook_variant: "Hook Variant",
-    persona: "Persona", editor: "Editor", buying_type: "Buying Type",
+    angle: "Angle", sub_angle: "Sub-Angle", concept: "Concept", icp: "ICP",
+    script: "Script / Hook", format: "Format", awareness_stage: "Awareness Stage",
+    product: "Product", creative_no: "Ad Number", buying_type: "Buying Type",
     batch: "Batch", attribution_window: "Attribution Window", geo: "Geo",
-    variant: "Variant", convention: "Convention",
+    naming_status: "Naming Status", convention: "Review Status",
   };
 
   const METRIC_MAP = {
@@ -636,6 +644,8 @@ export default function Dashboard() {
     rev: { label: "Revenue", fmt },
     roas: { label: "ROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
     pixel_roas: { label: "Pixel ROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
+    ncroas: { label: "NCROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
+    nc_rev: { label: "NC Revenue", fmt },
     pct_new: { label: "% New Cust.", fmt: fmtPct },
     count: { label: "# Creatives", fmt: fmtNum },
     txns: { label: "Purchases", fmt: fmtNum },
@@ -657,6 +667,15 @@ export default function Dashboard() {
             Last refreshed: {new Date(manifest.generated_at).toLocaleString()} · {Object.keys(mappings).length} dims mapped
           </p>
         </div>
+
+        {manifest.scope_note && (
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 14px", background: "#FEF6E7", border: "1px solid #F0D9A8", borderRadius: 8 }}>
+            <span style={{ fontSize: 13, lineHeight: 1.2 }}>⚠</span>
+            <div style={{ fontSize: 11, color: "#7a5c20", lineHeight: 1.5 }}>
+              <strong>Scope:</strong> {manifest.scope_note}
+            </div>
+          </div>
+        )}
 
         <DateRangePicker
           bounds={dateBounds}
@@ -683,11 +702,11 @@ export default function Dashboard() {
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
               {[
-                { label: "Total Spend", value: fmt(totals.spend), sub: "Meta-reported" },
-                { label: "Total Revenue", value: fmt(totals.rev), sub: "Platform-reported" },
-                { label: "Blended ROAS", value: `${totals.roas.toFixed(2)}x`, sub: "rev / spend" },
-                { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.clicks)} clicks` },
-                { label: "Total Purchases", value: fmtNum(totals.txns), sub: `${ads.length.toLocaleString()} creatives` },
+                { label: "Total Spend", value: fmt(totals.spend), sub: "channel-reported" },
+                { label: "Pixel Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders` },
+                { label: "Pixel ROAS", value: `${totals.roas.toFixed(2)}x`, sub: "pixel rev / spend" },
+                { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}` },
+                { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders` },
               ].map((kpi, i) => (
                 <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "16px 14px", border: "1px solid #E8DCD0" }}>
                   <div style={{ fontSize: 10, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{kpi.label}</div>
@@ -698,24 +717,25 @@ export default function Dashboard() {
             </div>
 
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Monthly Spend vs Revenue & ROAS (by ad creation month)</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Monthly Spend vs Revenue & ROAS (by campaign launch month)</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <ComposedChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#b0978f" }} />
                   <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => fmt(v)} />
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} domain={[0, 1.5]} tickFormatter={v => `${v}x`} />
-                  <Tooltip formatter={(v, n) => n === "ROAS" ? `${v.toFixed(2)}x` : fmtFull(v)} />
+                  <Tooltip formatter={(v, n) => (n === "Pixel ROAS" || n === "NCROAS") ? `${v.toFixed(2)}x` : fmtFull(v)} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar yAxisId="left" dataKey="spend" fill="#93c5fd" name="Spend" radius={[3, 3, 0, 0]} />
                   <Bar yAxisId="left" dataKey="revenue" fill="#86efac" name="Revenue" radius={[3, 3, 0, 0]} />
-                  <Line yAxisId="right" dataKey="roas" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} name="ROAS" />
+                  <Line yAxisId="right" dataKey="roas" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} name="Pixel ROAS" />
+                  <Line yAxisId="right" dataKey="ncroas" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} name="NCROAS" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
 
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Monthly Creative Volume (Video vs Image)</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· by campaign launch date where available</span></h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
@@ -723,8 +743,7 @@ export default function Dashboard() {
                   <YAxis tick={{ fontSize: 11, fill: "#b0978f" }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="video" fill="#818cf8" name="Video" stackId="a" />
-                  <Bar dataKey="image" fill="#fbbf24" name="Image" stackId="a" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="total" fill="#818cf8" name="Creatives launched" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -734,14 +753,11 @@ export default function Dashboard() {
         {tab === "Win Rate" && (
           <div>
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-              <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2 }}>
-                {["blended", "video", "image"].map(f => (
-                  <button key={f} onClick={() => setWrFormat(f)} style={{
-                    padding: "6px 14px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
-                    background: wrFormat === f ? "#fff" : "transparent", color: wrFormat === f ? "#50000B" : "#8a6f68",
-                  }}>{f === "blended" ? "All" : f === "video" ? "Video" : "Image"}</button>
-                ))}
-              </div>
+              <select value={wrFormat} onChange={e => setWrFormat(e.target.value)}
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                <option value="blended">All formats</option>
+                {formatList.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
               <select value={wrThreshold} onChange={e => setWrThreshold(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
                 {THRESHOLDS.map(t => <option key={t} value={t}>Threshold: {t}</option>)}
@@ -750,7 +766,7 @@ export default function Dashboard() {
 
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>
-                Win Rate Trend — {wrThreshold} ({wrFormat === "blended" ? "All" : wrFormat === "video" ? "Video Only" : "Image Only"})
+                Win Rate Trend — {wrThreshold} ({wrFormat === "blended" ? "All formats" : wrFormat})
               </h3>
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={wrData.filter(d => d.month !== "TOTAL")}>
@@ -785,24 +801,37 @@ export default function Dashboard() {
           </div>
         )}
 
-        {tab === "Editors" && (
+        {tab === "ICP" && (
           <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Editor / Creator Performance ({editors.length} tagged) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
-            <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 10px" }}>Only names confirmed as editors are attributed — everything else stays untagged rather than being guessed from an ad-name token.</p>
-            <BreakdownTable rows={editors} nameLabel="Editor" onRowClick={r => openModal(`Editor: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>ICP Performance ({icps.length} segments) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+            <BreakdownTable rows={icps} nameLabel="ICP" onRowClick={r => openModal(`ICP: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "Breakdowns" && (
           <div>
             <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginBottom: 16, width: "fit-content" }}>
-              {["Format", "Angle × Concept"].map(v => (
+              {["Format", "Awareness Stage", "Script", "Angle × Concept"].map(v => (
                 <button key={v} onClick={() => setBdView(v)} style={{
                   padding: "6px 14px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
                   background: bdView === v ? "#fff" : "transparent", color: bdView === v ? "#50000B" : "#8a6f68",
                 }}>{v}</button>
               ))}
             </div>
+
+            {bdView === "Awareness Stage" && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Awareness Stage ({awareness.length})</h3>
+                <BreakdownTable rows={awareness} nameLabel="Awareness Stage" onRowClick={r => openModal(`Awareness: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+              </div>
+            )}
+
+            {bdView === "Script" && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Script / Hook ({scripts.length})</h3>
+                <BreakdownTable rows={scripts} nameLabel="Script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+              </div>
+            )}
 
             {bdView === "Format" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>

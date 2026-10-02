@@ -38,16 +38,19 @@ export function aggregate(ads) {
       a.pixel_rev += m.pixel_rev || 0;
       a.pixel_txns += m.pixel_txns || 0;
       a.nc_txns += m.nc_txns || 0;
+      a.nc_rev += m.nc_rev || 0;
       a.count += 1;
       return a;
     },
     { spend: 0, rev: 0, txns: 0, impressions: 0, clicks: 0,
-      pixel_rev: 0, pixel_txns: 0, nc_txns: 0, count: 0 }
+      pixel_rev: 0, pixel_txns: 0, nc_txns: 0, nc_rev: 0, count: 0 }
   );
   return {
     ...tot,
     roas: tot.spend ? tot.rev / tot.spend : 0,
     pixel_roas: tot.spend ? tot.pixel_rev / tot.spend : 0,
+    ncroas: tot.spend ? tot.nc_rev / tot.spend : 0,
+    nccpa: tot.nc_txns ? tot.spend / tot.nc_txns : null,
     cpm: tot.impressions ? (tot.spend / tot.impressions) * 1000 : 0,
     cpc: tot.clicks ? tot.spend / tot.clicks : null,
     ctr: tot.impressions ? (tot.clicks / tot.impressions) * 100 : null,
@@ -81,10 +84,9 @@ export function monthly(ads) {
     if (!buckets.has(m)) buckets.set(m, { month: m, video: 0, image: 0, ads: [] });
     const b = buckets.get(m);
     b.ads.push(ad);
-    if (ad.format === "VIDEO" || ad.format === "VSL" || ad.format === "UGC" ||
-        ad.format === "ANIMATION" || ad.format === "TALKING HEAD") b.video += 1;
-    else if (ad.format === "STATIC" || ad.format === "NATIVE" ||
-             ad.format === "LISTICLE") b.image += 1;
+    // Format here is a presentation style ("Broll + VO", "Creator UGC"),
+    // not video-vs-image — and statics are excluded from this dataset — so a
+    // video/image split is not meaningful. Count launches instead.
   }
   return Array.from(buckets.values())
     .map((b) => {
@@ -92,14 +94,11 @@ export function monthly(ads) {
       return {
         month: b.month,
         total: b.ads.length,
-        video: b.video,
-        image: b.image,
-        other: b.ads.length - b.video - b.image,
         spend: agg.spend,
         revenue: agg.rev,
         purchases: agg.txns,
         roas: agg.roas,
-        cpm: agg.cpm,
+        ncroas: agg.ncroas,
       };
     })
     .sort((a, b) => a.month.localeCompare(b.month));
@@ -109,12 +108,8 @@ export function monthly(ads) {
 // Denominators exclude never-spent creatives.
 export function winRate(ads, formatFilter = "blended") {
   let filtered = ads.filter(hasSpend);
-  if (formatFilter === "video") {
-    filtered = filtered.filter((a) =>
-      ["VIDEO", "VSL", "UGC", "ANIMATION", "TALKING HEAD", "STORY"].includes(a.format));
-  } else if (formatFilter === "image") {
-    filtered = filtered.filter((a) =>
-      ["STATIC", "NATIVE", "LISTICLE", "ADVERTORIAL"].includes(a.format));
+  if (formatFilter !== "blended") {
+    filtered = filtered.filter((a) => a.format === formatFilter);
   }
 
   const byMonth = new Map();
@@ -168,6 +163,9 @@ export function toBreakdownRows(groups) {
       spend: g.spend,
       revenue: g.rev,
       roas: g.roas,
+      ncroas: g.ncroas,
+      nc_revenue: g.nc_rev,
+      nccpa: g.nccpa,
       pct_new: g.pct_new,
       purchases: g.txns,
       aov: g.aov,
@@ -184,19 +182,19 @@ export function toBreakdownRows(groups) {
 // Dimensions available for pivoting and for the Data Clean Up tab.
 export const DIMENSIONS = [
   "angle",
-  "format",
+  "sub_angle",
   "concept",
-  "family",
+  "icp",
+  "script",
+  "format",
+  "awareness_stage",
+  "product",
   "creative_no",
-  "version",
-  "hook_variant",
-  "persona",
-  "editor",
   "buying_type",
   "batch",
   "attribution_window",
   "geo",
-  "variant",
+  "naming_status",
   "convention",
 ];
 
