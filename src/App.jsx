@@ -752,6 +752,19 @@ export default function Dashboard() {
 
         {tab === "Win Rate" && (
           <div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 14px", background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8 }}>
+              <span style={{ fontSize: 13, lineHeight: 1.2 }}>⚠</span>
+              <div style={{ fontSize: 11, color: "#7f1d1d", lineHeight: 1.5 }}>
+                <strong>Read these rates with care.</strong> Win rate asks what share of
+                launched creatives reach a spend level — which needs the creatives that
+                never got there. Every ad in this dataset already spent over $1,000
+                (minimum {fmtFull(Math.min(...ads.map(a => a.metrics.spend || 0)))}), so the non-starters are absent and <strong>WR $1K is
+                100% by construction</strong>. The $15K and $50K columns are still
+                informative <em>relative to each other</em>, but none of these are
+                whole-account launch win rates. A full export including low-spend and
+                static creatives would be needed for that.
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
               <select value={wrFormat} onChange={e => setWrFormat(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
