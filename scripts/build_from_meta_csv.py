@@ -17,9 +17,12 @@ Meta export columns used: Ad name, Ad ID, Campaign name, Ad set name,
 Amount spent (USD), Purchases, Purchases conversion value, Impressions,
 Link clicks, Reporting starts / ends, Attribution setting.
 
-Revenue here is Meta-attributed purchase value. Triple Whale's new-customer
-metrics (NCROAS, NC revenue) are not in a Meta export, so the manifest sets
-has_nc = False and the UI hides them.
+Optionally joins a Triple Whale per-ad export (SQL editor, pixel_joined_tvf,
+channel facebook-ads, Triple Attribution, 7_days) on Meta ad id:
+    ad_id,spend,pixel_rev,pixel_orders,nc_rev,nc_orders,new_visitors,visitors,sessions,first_day
+When present, Triple Whale pixel revenue/orders are the primary lens, NC
+metrics and new-visitor share are filled in, and the launch date is the ad's
+first spend day. Without it, revenue is Meta-attributed and has_nc = False.
 """
 import csv
 import gzip
@@ -101,8 +104,15 @@ def load_master(path):
     return by_id, by_name
 
 
-def build(csv_path, master_path):
+def load_tw(path):
+    if not path or not path.exists():
+        return {}
+    return {r["ad_id"]: r for r in csv.DictReader(open(path, encoding="utf-8-sig"))}
+
+
+def build(csv_path, master_path, tw_path=None):
     rows = list(csv.DictReader(open(csv_path, encoding="utf-8-sig")))
+    tw = load_tw(tw_path)
     by_id, by_name = load_master(master_path)
     starts = sorted(r["Reporting starts"] for r in rows if r.get("Reporting starts"))
     ends = sorted(r["Reporting ends"] for r in rows if r.get("Reporting ends"))
@@ -122,6 +132,7 @@ def build(csv_path, master_path):
         imps = sum(num(r["Impressions"]) for r in rs)
         clicks = sum(num(r["Link clicks"]) for r in rs)
         ad_ids = [r["Ad ID"] for r in sorted(rs, key=lambda r: -num(r["Amount spent (USD)"]))]
+        twr = [tw[i] for i in ad_ids if i in tw]
         campaigns = sorted({r["Campaign name"] for r in rs if r.get("Campaign name")})
         adsets = sorted({r["Ad set name"] for r in rs if r.get("Ad set name")})
         top = max(rs, key=lambda r: num(r["Amount spent (USD)"]))
@@ -141,17 +152,36 @@ def build(csv_path, master_path):
             tags["format"] = nr["format"]
 
         camps = [parse_campaign(c) for c in campaigns]
-        dates = sorted(d for d in [c["launch_date"] for c in camps] + [nr and nr["date"]] if d)
+        first = sorted(t["first_day"] for t in twr if t.get("first_day"))
+        if first:
+            dates = [first[0][2:4] + first[0][5:7] + first[0][8:10]]
+        else:
+            dates = sorted(d for d in [c["launch_date"] for c in camps] + [nr and nr["date"]] if d)
         camp = parse_campaign(top.get("Campaign name"))
 
+        meta_rev, meta_txns = rev, txns
+        if tw:
+            rev = sum(num(t["pixel_rev"]) for t in twr)
+            txns = sum(num(t["pixel_orders"]) for t in twr)
+        nc_rev = sum(num(t["nc_rev"]) for t in twr)
+        nc_txns = sum(num(t["nc_orders"]) for t in twr)
+        new_vis = sum(num(t["new_visitors"]) for t in twr)
+        vis = sum(num(t["visitors"]) for t in twr)
         metrics = {
             "spend": round(spend, 2), "rev": round(rev, 2), "txns": txns,
             "pixel_rev": round(rev, 2), "pixel_txns": txns,
-            "nc_rev": 0, "nc_txns": 0, "ncroas": None, "nccpa": None,
+            "meta_rev": round(meta_rev, 2), "meta_txns": meta_txns,
+            "nc_rev": round(nc_rev, 2), "nc_txns": nc_txns,
+            "ncroas": round(nc_rev / spend, 4) if (tw and spend) else None,
+            "nccpa": round(spend / nc_txns, 2) if nc_txns else None,
+            "new_visitors": new_vis, "visitors": vis,
+            "pct_new_visitors": round(new_vis / vis * 100, 2) if vis else None,
             "impressions": imps, "clicks": clicks,
         }
         metrics["roas"] = round(rev / spend, 4) if spend else 0
         metrics["pixel_roas"] = metrics["roas"]
+        metrics["meta_roas"] = round(meta_rev / spend, 4) if spend else 0
+        metrics["pct_new"] = round(nc_txns / txns * 100, 2) if (tw and txns) else None
         metrics["aov"] = round(rev / txns, 2) if txns else None
         metrics["cpa"] = round(spend / txns, 4) if txns else None
         metrics["cpm"] = round(spend / imps * 1000, 4) if imps else 0
@@ -191,17 +221,24 @@ def build(csv_path, master_path):
         "period": {"start": starts[0], "end": ends[-1]},
         "source": f"meta-ads-manager-export:{csv_path.name}",
         "shop": "18b070.myshopify.com",
-        "has_nc": False,
-        "attribution": {"primary": f"Meta Ads Manager · {attribution}",
-                        "secondary": None, "window": attribution},
+        "has_nc": bool(tw),
+        "attribution": ({"primary": "Triple Whale Pixel Joined · Triple Attribution · 7-day",
+                         "secondary": f"New-customer (NCROAS / NCCPA); Meta-reported ({attribution}) kept as meta_rev",
+                         "window": "7 days"} if tw else
+                        {"primary": f"Meta Ads Manager · {attribution}",
+                         "secondary": None, "window": attribution}),
         "ad_accounts": [ACCOUNT],
         "scope_note": (
             f"Every ad that spent in {ACCOUNT}, {starts[0]} → {ends[-1]}, rolled up to "
             f"{len(ads):,} creatives. {n_ren:,} carry the new taxonomy in their name "
             f"({s_ren/tot:.0%} of spend); legacy names are tagged from the MASTER "
             f"workbook where possible ({s_tag/tot:.0%} of spend tagged in total) and "
-            "otherwise show as (untagged). Revenue and ROAS are Meta-attributed; "
-            "Triple Whale new-customer metrics are not in this export."
+            "otherwise show as (untagged). "
+            + ("Revenue, ROAS and new-customer figures are Triple Whale (Triple Attribution, "
+               "7-day); launch date = first spend day in this window, so ads live before "
+               f"{starts[0]} show as launched on {starts[0]}." if tw else
+               "Revenue and ROAS are Meta-attributed; Triple Whale new-customer metrics "
+               "are not in this export.")
         ),
         "ad_count": len(ads),
         "ads": ads,
@@ -210,14 +247,15 @@ def build(csv_path, master_path):
 
 def main():
     if len(sys.argv) < 2:
-        sys.exit("usage: build_from_meta_csv.py <meta export .csv> [MASTER .xlsx]")
+        sys.exit("usage: build_from_meta_csv.py <meta export .csv> [MASTER .xlsx] [triple whale .csv]")
     src = pathlib.Path(sys.argv[1])
     master = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else None
+    twp = pathlib.Path(sys.argv[3]) if len(sys.argv) > 3 else None
     root = pathlib.Path(__file__).resolve().parent.parent
     out = root / "public" / "data"
     (out / "history").mkdir(parents=True, exist_ok=True)
 
-    m = build(src, master)
+    m = build(src, master, twp)
     (out / "latest.json").write_text(json.dumps(m, separators=(",", ":"), default=str))
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     with gzip.open(out / "history" / f"{stamp}.json.gz", "wt") as f:
@@ -229,6 +267,13 @@ def main():
     rev = sum(a["metrics"]["rev"] for a in ads)
     print(f"{n} creatives · {m['period']['start']} → {m['period']['end']}")
     print(f"spend ${spend:,.0f} · rev ${rev:,.0f} · ROAS {rev/spend:.2f}x")
+    if m["has_nc"]:
+        nc = sum(a["metrics"]["nc_rev"] for a in ads)
+        meta = sum(a["metrics"]["meta_rev"] for a in ads)
+        nv = sum(a["metrics"]["new_visitors"] for a in ads); v = sum(a["metrics"]["visitors"] for a in ads)
+        matched = sum(a["metrics"]["spend"] for a in ads if a["metrics"]["visitors"] or a["metrics"]["rev"])
+        print(f"NC rev ${nc:,.0f} (NCROAS {nc/spend:.2f}x) · Meta rev ${meta:,.0f} · new visitors {nv/v:.1%}"
+              f" · spend with TW data {matched/spend:.1%}")
     for c in ("renamed", "master", "untagged"):
         s = sum(a["metrics"]["spend"] for a in ads if a["convention"] == c)
         print(f"  {c:<9} {sum(1 for a in ads if a['convention']==c):>5} creatives  ${s:>12,.0f}  {s/spend:5.1%}")

@@ -39,11 +39,14 @@ export function aggregate(ads) {
       a.pixel_txns += m.pixel_txns || 0;
       a.nc_txns += m.nc_txns || 0;
       a.nc_rev += m.nc_rev || 0;
+      a.new_visitors += m.new_visitors || 0;
+      a.visitors += m.visitors || 0;
       a.count += 1;
       return a;
     },
     { spend: 0, rev: 0, txns: 0, impressions: 0, clicks: 0,
-      pixel_rev: 0, pixel_txns: 0, nc_txns: 0, nc_rev: 0, count: 0 }
+      pixel_rev: 0, pixel_txns: 0, nc_txns: 0, nc_rev: 0,
+      new_visitors: 0, visitors: 0, count: 0 }
   );
   return {
     ...tot,
@@ -58,6 +61,8 @@ export function aggregate(ads) {
     aov: tot.txns ? tot.rev / tot.txns : null,
     // Share of pixel-attributed purchases that came from new customers.
     pct_new: tot.pixel_txns ? (tot.nc_txns / tot.pixel_txns) * 100 : null,
+    // Share of Triple Whale-tracked visitors who were new to the site.
+    pct_new_visitors: tot.visitors ? (tot.new_visitors / tot.visitors) * 100 : null,
   };
 }
 

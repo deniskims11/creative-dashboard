@@ -123,6 +123,7 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
 
   const downloadCsv = () => {
     const headers = ["ad_name", "new_ad_name", "creative_no", "product", "angle", "sub_angle", "concept", "icp", "script", "format", "awareness_stage", "strategist", "naming_status", "buying_type", "campaign", "adset", "spend", "rev", "txns", "nc_rev", "nc_txns", "ncroas", "nccpa", "spend_rank"];
+    if (HAS_NV) headers.push("pct_new_visitors");
     const escape = (v) => v == null ? "" : typeof v === "string" && /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : String(v);
     const lines = [headers.join(",")];
     for (const a of sortedAds) {
@@ -231,6 +232,8 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
 // --------- Sortable breakdown table (used across Concepts / Agencies / Creators / ICP) ---------
 // Set from the manifest: false when the data has no Triple Whale new-customer metrics.
 let HAS_NC = true;
+// Set from the manifest: true when per-ad visitor counts are present.
+let HAS_NV = false;
 
 function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
   const [sort, setSort] = useState({ col: "spend", dir: "desc" });
@@ -241,6 +244,7 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
     { key: "revenue", label: "Revenue" },
     { key: "roas", label: HAS_NC ? "Pixel ROAS" : "ROAS" },
     ...(HAS_NC ? [{ key: "ncroas", label: "NCROAS" }, { key: "pct_new", label: "% New Cust." }] : []),
+    ...(HAS_NV ? [{ key: "pct_new_visitors", label: "% New Visitors" }] : []),
     { key: "purchases", label: "Orders" },
     { key: "aov", label: "AOV" },
     ...(HAS_NC ? [{ key: "nccpa", label: "NC CPA" }] : []),
@@ -268,6 +272,7 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
             <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /></td>
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} /></td>}
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>}
+            {HAS_NV && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new_visitors)}</td>}
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
             {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>}
@@ -634,6 +639,7 @@ export default function Dashboard() {
   if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading data…</div>;
 
   HAS_NC = manifest.has_nc !== false;
+  HAS_NV = (manifest.ads || []).some(a => a.metrics && a.metrics.visitors);
   const fromMaster = (manifest.source || "").startsWith("master-workbook");
 
   const ALL_DIMS_LABELS = {
@@ -655,6 +661,7 @@ export default function Dashboard() {
       nc_rev: { label: "NC Revenue", fmt },
       pct_new: { label: "% New Cust.", fmt: fmtPct },
     } : {}),
+    ...(HAS_NV ? { pct_new_visitors: { label: "% New Visitors", fmt: fmtPct } } : {}),
     count: { label: "# Creatives", fmt: fmtNum },
     txns: { label: "Purchases", fmt: fmtNum },
     cpm: { label: "CPM", fmt: v => v == null ? "—" : `$${v.toFixed(2)}` },
@@ -708,7 +715,7 @@ export default function Dashboard() {
 
         {tab === "Overview" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${HAS_NC && HAS_NV ? 6 : 5}, 1fr)`, gap: 12, marginBottom: 20 }}>
               {[
                 { label: "Total Spend", value: fmt(totals.spend), sub: "channel-reported" },
                 { label: HAS_NC ? "Pixel Revenue" : "Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders` },
@@ -716,6 +723,7 @@ export default function Dashboard() {
                 ...(HAS_NC ? [
                   { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}` },
                   { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders` },
+                  ...(HAS_NV ? [{ label: "% New Visitors", value: fmtPct(totals.pct_new_visitors), sub: `${fmtNum(totals.new_visitors)} of ${fmtNum(totals.visitors)}` }] : []),
                 ] : [
                   { label: "CPA", value: totals.txns ? `$${(totals.spend / totals.txns).toFixed(0)}` : "—", sub: "spend / purchases" },
                   { label: "AOV", value: totals.txns ? `$${(totals.rev / totals.txns).toFixed(0)}` : "—", sub: "rev / purchases" },
