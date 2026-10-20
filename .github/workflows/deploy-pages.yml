@@ -7,8 +7,9 @@ on:
   push:
     branches: [main]
   schedule:
-    # Daily 11:00 UTC (07:00 ET), once yesterday's Triple Whale data has settled.
-    - cron: '0 11 * * *'
+    # Every 4 hours. Each run re-pulls the whole window, so yesterday's late
+    # Triple Whale attribution settles in and today's partial day stays current.
+    - cron: '17 */4 * * *'
   workflow_dispatch:
 
 permissions:

@@ -9,10 +9,10 @@ Natural Rems' ad-naming conventions.
 ## How it works
 
 **Automatic daily refresh (Oct 2026).** `.github/workflows/deploy-pages.yml` runs
-every day at 11:00 UTC (and on every push / manual "Run workflow"). It calls
+every 4 hours (and on every push / manual "Run workflow"). It calls
 `scripts/fetch_tw_sql.py`, which queries the Triple Whale SQL API
-(`POST /api/v2/orcabase/api/sql`, header `x-api-key`) for the last 120 days ending
-yesterday: per-ad daily rows, names/campaign/ad set + Meta-reported conversions,
+(`POST /api/v2/orcabase/api/sql`, header `x-api-key`) for the last 120 days through
+today (partial): per-ad daily rows, names/campaign/ad set + Meta-reported conversions,
 and each ad's lifetime first spend day + thumbnail. Weekly and day-14 launch
 figures are derived from the daily rows, then `build_from_meta_csv.py` builds the
 manifest and Pages publishes it. Nothing is committed; legacy tags come from

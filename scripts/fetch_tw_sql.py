@@ -13,8 +13,9 @@ Writes, in the exact formats build_from_meta_csv.py already reads:
     tw_weekly.csv    per-ad Monday weeks
     tw_daily.csv     per-ad daily rows (the metric source for date filtering)
 
-then runs the build. The window ends yesterday (UTC) so a partial day never
-lands in the numbers.
+then runs the build. The window ends today (shop data so far), so a run every
+few hours keeps the latest day current; pass --through-yesterday to stop at
+complete days.
 
 API: POST /api/v2/orcabase/api/sql with header x-api-key. The response is a
 bare JSON array of row objects (some accounts get a {"data": [...]} wrapper;
@@ -93,12 +94,13 @@ def main():
     ap.add_argument("--days", type=int, default=int(os.environ.get("WINDOW_DAYS", 120)))
     ap.add_argument("--out", default=str(ROOT / "raw"))
     ap.add_argument("--no-build", action="store_true")
+    ap.add_argument("--through-yesterday", action="store_true")
     a = ap.parse_args()
     key = os.environ.get("TW_API_KEY")
     if not key:
         sys.exit("TW_API_KEY is not set")
 
-    end = datetime.now(timezone.utc).date() - timedelta(days=1)
+    end = datetime.now(timezone.utc).date() - timedelta(days=1 if a.through_yesterday else 0)
     start = end - timedelta(days=a.days - 1)
     s, e = start.isoformat(), end.isoformat()
     out = pathlib.Path(a.out)
