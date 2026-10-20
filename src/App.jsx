@@ -1,3 +1,4 @@
+import NvpLedger from "./NvpLedger.jsx";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -13,7 +14,7 @@ const fmtFull = (n) => `$${Math.round(n).toLocaleString()}`;
 const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString();
 const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 
-const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "ICP", "Breakdowns", "Analysis", "Data Clean Up"];
+const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "ICP", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
 
 // Coloured relative to the account baseline (set from the manifest), so the
@@ -1010,6 +1011,12 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {tab === "NVP Buckets" && (
+          canActivity ? (
+            <NvpLedger ads={manifest.ads} days={manifest.days} baselineNc={BASELINE.ncroas} roasLabel="Pixel ROAS" />
+          ) : <p style={{ color: "#8a6f68" }}>Needs daily data — available after the next refresh.</p>
         )}
 
         {tab === "Angles" && (
