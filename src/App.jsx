@@ -4,8 +4,8 @@ import {
   ResponsiveContainer, Cell, ComposedChart,
 } from "recharts";
 import {
-  aggregate, groupBy, monthly, winRate, toBreakdownRows,
-  DIMENSIONS, dimensionValues,
+  aggregate, groupBy, monthly, winRate, toBreakdownRows, weekly,
+  DIMENSIONS, dimensionValues, BASELINE, setBaseline,
 } from "./aggregator.js";
 
 const fmt = (n) => n == null ? "—" : n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(0)}K` : `$${n.toFixed(0)}`;
@@ -16,10 +16,14 @@ const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "ICP", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
 
-const RoasBadge = ({ roas }) => {
+// Coloured relative to the account baseline (set from the manifest), so the
+// badges separate better-than-average from worse-than-average instead of all
+// sitting under a fixed 1.0x line. Pass base="ncroas" for NCROAS columns.
+const RoasBadge = ({ roas, base = "roas" }) => {
   const r = roas ?? 0;
-  const bg = r >= 1.2 ? "#dcfce7" : r >= 1.0 ? "#f0fdf4" : r >= 0.8 ? "#fef9c3" : "#fee2e2";
-  const color = r >= 1.2 ? "#166534" : r >= 1.0 ? "#15803d" : r >= 0.8 ? "#854d0e" : "#991b1b";
+  const b = BASELINE[base] || 1;
+  const bg = r >= b * 1.2 ? "#dcfce7" : r >= b ? "#f0fdf4" : r >= b * 0.85 ? "#fef9c3" : "#fee2e2";
+  const color = r >= b * 1.2 ? "#166534" : r >= b ? "#15803d" : r >= b * 0.85 ? "#854d0e" : "#991b1b";
   return <span style={{ background: bg, color, padding: "2px 8px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>{r.toFixed(2)}x</span>;
 };
 
@@ -251,6 +255,7 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
     { key: "winRate1k", label: "WR $1K" },
     { key: "winRate15k", label: "WR $15K" },
     { key: "winRate50k", label: "WR $50K" },
+    ...(HAS_NC ? [{ key: "effRate", label: "Efficient WR" }] : []),
   ];
   const sorted = useMemo(() => sortRows(rows, sort.col, sort.dir), [rows, sort]);
   return (
@@ -270,15 +275,17 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
             <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}</td>
             <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /></td>
-            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} /></td>}
+            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} base="ncroas" /></td>}
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>}
             {HAS_NV && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new_visitors)}</td>}
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
             {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>}
-            <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate1k)}</td>
-            <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate15k)}</td>
-            <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate50k)}</td>
+            {[r.winRate1k, r.winRate15k, r.winRate50k, ...(HAS_NC ? [r.effRate] : [])].map((v, j) => (
+              <td key={j} title={`${r.eligible ?? "?"} launches eligible`} style={{ ...td, textAlign: "right", color: (r.eligible ?? 99) < 5 ? "#cbb8b0" : td.color }}>
+                {(r.eligible ?? 1) === 0 ? "—" : fmtPct(v)}
+              </td>
+            ))}
           </tr>
         ))}
       </tbody>
@@ -287,6 +294,10 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
 }
 
 // --------- Win Rate table with sortable columns ---------
+// Threshold columns present in this win-rate data ("Efficient" only exists when
+// the manifest carries new-customer metrics).
+const wrCols = (wrData) => THRESHOLDS.concat(wrData.some(r => r.thresholds && r.thresholds.Efficient) ? ["Efficient"] : []);
+
 function WinRateTable({ wrData }) {
   const [sort, setSort] = useState({ col: "month", dir: "desc" });
   const { total, rows } = useMemo(() => {
@@ -310,7 +321,7 @@ function WinRateTable({ wrData }) {
           <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
             <SortHeader label="Month" col="month" sort={sort} setSort={setSort} align="left" />
             <SortHeader label="Launched" col="total" sort={sort} setSort={setSort} />
-            {THRESHOLDS.map(t => <SortHeader key={t} label={t} col={t} sort={sort} setSort={setSort} align="center" />)}
+            {wrCols(wrData).map(t => <SortHeader key={t} label={t === "Efficient" ? "Efficient ($1K + NCROAS ≥ acct)" : t} col={t} sort={sort} setSort={setSort} align="center" />)}
           </tr>
         </thead>
         <tbody>
@@ -318,7 +329,7 @@ function WinRateTable({ wrData }) {
             <tr key={i} style={{ borderBottom: "1px solid #F5EDE5" }}>
               <td style={td}>{row.month}</td>
               <td style={{ ...td, textAlign: "right" }}>{row.total.toLocaleString()}</td>
-              {THRESHOLDS.map(t => {
+              {wrCols(wrData).map(t => {
                 const d = row.thresholds[t];
                 return (
                   <td key={t} style={{ padding: "6px 6px", textAlign: "center" }}>
@@ -333,7 +344,7 @@ function WinRateTable({ wrData }) {
             <tr style={{ borderBottom: "1px solid #F5EDE5", background: "#FBF7F4", fontWeight: 700 }}>
               <td style={td}>{total.month}</td>
               <td style={{ ...td, textAlign: "right" }}>{total.total.toLocaleString()}</td>
-              {THRESHOLDS.map(t => {
+              {wrCols(wrData).map(t => {
                 const d = total.thresholds[t];
                 return (
                   <td key={t} style={{ padding: "6px 6px", textAlign: "center" }}>
@@ -424,6 +435,8 @@ export default function Dashboard() {
 
   // Apply mappings + creation-date filter to ads.
   const ads = useMemo(() => {
+    // Baseline must be in place before any memo below derives badges / efficient wins.
+    setBaseline(manifest?.baseline);
     let raw = manifest?.ads ?? [];
     if (dateStart || dateEnd) {
       raw = raw.filter(a => {
@@ -445,6 +458,9 @@ export default function Dashboard() {
 
   const totals = useMemo(() => aggregate(ads), [ads]);
   const monthlyData = useMemo(() => monthly(ads), [ads]);
+  const [wkDim, setWkDim] = useState("angle");
+  const weeklyTotals = useMemo(() => weekly(ads, manifest?.weeks), [ads, manifest]);
+  const weeklyMix = useMemo(() => weekly(ads, manifest?.weeks, wkDim, 6), [ads, manifest, wkDim]);
   const wrData = useMemo(() => winRate(ads, wrFormat), [ads, wrFormat]);
   const concepts = useMemo(() => toBreakdownRows(groupBy(ads, "concept")), [ads]);
   const angles = useMemo(() => toBreakdownRows(groupBy(ads, "angle")), [ads]);
@@ -456,6 +472,8 @@ export default function Dashboard() {
     [ads]
   );
   const formats = useMemo(() => toBreakdownRows(groupBy(ads, "format")), [ads]);
+  const strategists = useMemo(() => toBreakdownRows(groupBy(ads, "strategist")), [ads]);
+  const launchStatuses = useMemo(() => toBreakdownRows(groupBy(ads, "launch_status")), [ads]);
 
   // Creator × Concept with filter
   const creatorConceptGroups = useMemo(() => {
@@ -639,6 +657,7 @@ export default function Dashboard() {
   if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading data…</div>;
 
   HAS_NC = manifest.has_nc !== false;
+  setBaseline(manifest.baseline);
   HAS_NV = (manifest.ads || []).some(a => a.metrics && a.metrics.visitors);
   const fromMaster = (manifest.source || "").startsWith("master-workbook");
 
@@ -648,6 +667,7 @@ export default function Dashboard() {
     product: "Product", creative_no: "Ad Number", buying_type: "Buying Type",
     batch: "Batch", attribution_window: "Attribution Window", geo: "Geo",
     strategist: "Strategist", editor: "Editor", hook: "Hook", funnel: "Funnel Stage",
+    launch_status: "Launch Status",
     naming_status: "Naming Status", convention: "Review Status",
   };
 
@@ -737,8 +757,53 @@ export default function Dashboard() {
               ))}
             </div>
 
+            {weeklyTotals.rows.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Weekly spend, revenue & ROAS <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· calendar weeks (Mon start); first and last weeks are partial</span></h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart data={weeklyTotals.rows}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
+                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#b0978f" }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => fmt(v)} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => `${v.toFixed(1)}x`} />
+                    <Tooltip formatter={(v, n) => (n.includes("ROAS")) ? `${(v ?? 0).toFixed(2)}x` : fmtFull(v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar yAxisId="left" dataKey="spend" fill="#93c5fd" name="Spend" radius={[3, 3, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="rev" fill="#86efac" name="Revenue" radius={[3, 3, 0, 0]} />
+                    <Line yAxisId="right" dataKey="roas" stroke="#f97316" strokeWidth={2.5} dot={{ r: 3 }} name={HAS_NC ? "Pixel ROAS" : "ROAS"} />
+                    {HAS_NC && <Line yAxisId="right" dataKey="ncroas" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} name="NCROAS" />}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {weeklyMix.rows.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#3a2429" }}>Weekly spend mix <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· share of each week's spend, top 6 + other</span></h3>
+                  <select value={wkDim} onChange={e => setWkDim(e.target.value)}
+                    style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                    {["angle", "format", "sub_angle", "awareness_stage", "strategist", "icp"].map(d => <option key={d} value={d}>{ALL_DIMS_LABELS[d] || d}</option>)}
+                  </select>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={weeklyMix.rows} stackOffset="expand">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
+                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#b0978f" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => `${Math.round(v * 100)}%`} />
+                    <Tooltip formatter={(v) => fmtFull(v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    {weeklyMix.keys.map((k, i) => (
+                      <Bar key={k} dataKey={k} stackId="mix" name={k}
+                        fill={["#50000B", "#b45309", "#0e7490", "#7c3aed", "#15803d", "#be185d", "#cbb8b0"][i % 7]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Monthly Spend vs Revenue & ROAS (by campaign launch month)</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Launch cohorts — spend, revenue & ROAS of creatives launched each month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· in-window spend; carry-over creatives excluded</span></h3>
               <ResponsiveContainer width="100%" height={280}>
                 <ComposedChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
@@ -756,7 +821,7 @@ export default function Dashboard() {
             </div>
 
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· by campaign launch date where available</span></h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· by first spend day; carry-over creatives excluded</span></h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
@@ -787,6 +852,16 @@ export default function Dashboard() {
                 static creatives would be needed for that.
               </div>
             </div>)}
+            {!fromMaster && (
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>
+                <span style={{ fontSize: 13, lineHeight: 1.2 }}>ⓘ</span>
+                <div style={{ fontSize: 11, color: "#1e3a5f", lineHeight: 1.5 }}>
+                  <strong>How these are counted.</strong> A launch is a creative whose first-ever spend day falls inside the window and that is at least {manifest.mature_days ?? 14} days old,
+                  so carry-over ads ({fmtNum(ads.filter(a => a.carry_over).length)}) and ads too new to judge ({fmtNum(ads.filter(a => !a.carry_over && a.mature === false).length)}) are left out.
+                  Thresholds are lifetime-in-window spend. <strong>Efficient</strong> = spent $1K+ and beat the account NCROAS ({(BASELINE.ncroas).toFixed(2)}x).
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
               <select value={wrFormat} onChange={e => setWrFormat(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
@@ -795,7 +870,7 @@ export default function Dashboard() {
               </select>
               <select value={wrThreshold} onChange={e => setWrThreshold(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
-                {THRESHOLDS.map(t => <option key={t} value={t}>Threshold: {t}</option>)}
+                {wrCols(wrData).map(t => <option key={t} value={t}>{t === "Efficient" ? "Efficient win ($1K + NCROAS ≥ account)" : `Threshold: ${t}`}</option>)}
               </select>
             </div>
 
@@ -846,7 +921,7 @@ export default function Dashboard() {
         {tab === "Breakdowns" && (
           <div>
             <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginBottom: 16, width: "fit-content" }}>
-              {["Format", "Awareness Stage", "Script", "Angle × Concept"].map(v => (
+              {["Format", "Awareness Stage", "Script", "Strategist", "Launch Status", "Angle × Concept"].map(v => (
                 <button key={v} onClick={() => setBdView(v)} style={{
                   padding: "6px 14px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
                   background: bdView === v ? "#fff" : "transparent", color: bdView === v ? "#50000B" : "#8a6f68",
@@ -865,6 +940,20 @@ export default function Dashboard() {
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Script / Hook ({scripts.length})</h3>
                 <BreakdownTable rows={scripts} nameLabel="Script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+              </div>
+            )}
+
+            {bdView === "Strategist" && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Strategist ({strategists.length}) <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· from the 10th field of renamed ad names; older names carry no strategist</span></h3>
+                <BreakdownTable rows={strategists} nameLabel="Strategist" onRowClick={r => openModal(`Strategist: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+              </div>
+            )}
+
+            {bdView === "Launch Status" && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Carry-over vs new launches</h3>
+                <BreakdownTable rows={launchStatuses} nameLabel="Launch Status" onRowClick={r => openModal(`Launch status: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 

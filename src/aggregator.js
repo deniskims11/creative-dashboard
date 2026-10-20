@@ -19,6 +19,23 @@ const THRESHOLDS = [
 // from rate denominators (and the excluded count is surfaced in the UI).
 const hasSpend = (a) => (a.metrics.spend || 0) > 0;
 
+// Launch win rates only make sense for creatives launched inside the reporting
+// window and old enough to have had a chance to scale. Carry-over ads (already
+// live before the window) and too-new ads are excluded. Older manifests carry
+// neither flag, so everything stays eligible there.
+const launchEligible = (a) => hasSpend(a) && !a.carry_over && a.mature !== false;
+
+// Account-level ROAS / NCROAS, used as the bar for "efficient" wins and for
+// colouring ROAS badges relative to the account rather than to fixed cut-offs.
+export const BASELINE = { roas: 1, ncroas: 1 };
+export function setBaseline(b) {
+  if (b && b.roas) BASELINE.roas = b.roas;
+  if (b && b.ncroas) BASELINE.ncroas = b.ncroas;
+}
+// A creative that scaled past $1K AND beat the account's NCROAS.
+const isEfficientWin = (a) =>
+  (a.metrics.spend || 0) >= 1000 && (a.metrics.ncroas ?? 0) >= BASELINE.ncroas;
+
 // Translate YYMMDD launch dates into YYYY-MM buckets.
 function yymmddToMonth(s) {
   if (!s || s.length !== 6 || !/^\d{6}$/.test(s)) return null;
@@ -84,6 +101,9 @@ export function groupBy(ads, dim) {
 export function monthly(ads) {
   const buckets = new Map();
   for (const ad of ads) {
+    // Carry-over creatives launched before the window — their in-window spend
+    // would land in old, mostly-empty months, so they are left out here.
+    if (ad.carry_over) continue;
     const m = yymmddToMonth(ad.date);
     if (!m) continue;
     if (!buckets.has(m)) buckets.set(m, { month: m, video: 0, image: 0, ads: [] });
@@ -112,7 +132,7 @@ export function monthly(ads) {
 // Win rate: for each launch month, count creatives by spend threshold.
 // Denominators exclude never-spent creatives.
 export function winRate(ads, formatFilter = "blended") {
-  let filtered = ads.filter(hasSpend);
+  let filtered = ads.filter(launchEligible);
   if (formatFilter !== "blended") {
     filtered = filtered.filter((a) => a.format === formatFilter);
   }
@@ -136,6 +156,8 @@ export function winRate(ads, formatFilter = "blended") {
           rate: monthAds.length ? (n / monthAds.length) * 100 : 0,
         };
       }
+      const eff = monthAds.filter(isEfficientWin).length;
+      thresholds["Efficient"] = { n: eff, rate: monthAds.length ? (eff / monthAds.length) * 100 : 0 };
       return { month, total: monthAds.length, thresholds };
     });
 
@@ -147,6 +169,8 @@ export function winRate(ads, formatFilter = "blended") {
       rate: filtered.length ? (n / filtered.length) * 100 : 0,
     };
   }
+  const effTot = filtered.filter(isEfficientWin).length;
+  totalThresholds["Efficient"] = { n: effTot, rate: filtered.length ? (effTot / filtered.length) * 100 : 0 };
   rows.push({ month: "TOTAL", total: filtered.length, thresholds: totalThresholds });
   return rows;
 }
@@ -154,7 +178,7 @@ export function winRate(ads, formatFilter = "blended") {
 // Convert a groupBy result into the breakdown-table row shape.
 export function toBreakdownRows(groups) {
   return groups.map((g) => {
-    const spenders = g.ads.filter(hasSpend);
+    const spenders = g.ads.filter(launchEligible);
     const wr = (min) =>
       spenders.length
         ? (spenders.filter((a) => (a.metrics.spend || 0) >= min).length /
@@ -180,8 +204,43 @@ export function toBreakdownRows(groups) {
       winRate1k: wr(1000),
       winRate15k: wr(15000),
       winRate50k: wr(50000),
+      effRate: spenders.length ? (spenders.filter(isEfficientWin).length / spenders.length) * 100 : 0,
+      eligible: spenders.length,
+      pct_new_visitors: g.pct_new_visitors,
     };
   });
+}
+
+// Calendar-week series (from each creative's "wk" rows: [weekIdx, spend, rev,
+// nc_rev, nc_orders]). With a dim, also splits weekly spend across the top-N
+// values of that dimension (everything else lands in "Other").
+export function weekly(ads, weeks, dim = null, topN = 6) {
+  if (!weeks || !weeks.length) return { rows: [], keys: [] };
+  let keys = [];
+  if (dim) {
+    const tot = new Map();
+    for (const a of ads) {
+      const k = a[dim] ?? "(untagged)";
+      tot.set(k, (tot.get(k) || 0) + (a.metrics.spend || 0));
+    }
+    keys = [...tot.entries()].sort((x, y) => y[1] - x[1]).slice(0, topN).map((e) => e[0]);
+  }
+  const rows = weeks.map((w) => ({ week: w.slice(5), spend: 0, rev: 0, nc_rev: 0, nc_orders: 0 }));
+  for (const a of ads) {
+    const k = dim ? (keys.includes(a[dim] ?? "(untagged)") ? (a[dim] ?? "(untagged)") : "Other") : null;
+    for (const [i, s, r, nc, nco] of a.wk || []) {
+      const row = rows[i];
+      if (!row) continue;
+      row.spend += s; row.rev += r; row.nc_rev += nc; row.nc_orders += nco;
+      if (k) row[k] = (row[k] || 0) + s;
+    }
+  }
+  for (const r of rows) {
+    r.roas = r.spend ? r.rev / r.spend : null;
+    r.ncroas = r.spend ? r.nc_rev / r.spend : null;
+  }
+  if (dim && rows.some((r) => r.Other)) keys = [...keys, "Other"];
+  return { rows, keys };
 }
 
 // Dimensions available for pivoting and for the Data Clean Up tab.
@@ -201,6 +260,8 @@ export const DIMENSIONS = [
   "geo",
   "naming_status",
   "convention",
+  "strategist",
+  "launch_status",
 ];
 
 export function dimensionValues(ads, dim) {

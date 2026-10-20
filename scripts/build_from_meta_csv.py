@@ -34,7 +34,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from parse_ad_name import parse_campaign
+from parse_ad_name import parse_ad_name, parse_campaign
 
 ACCOUNT = "act_944402037249956"
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
@@ -110,9 +110,33 @@ def load_tw(path):
     return {r["ad_id"]: r for r in csv.DictReader(open(path, encoding="utf-8-sig"))}
 
 
-def build(csv_path, master_path, tw_path=None):
+# Legacy parser codes -> the renamed taxonomy's angle names.
+LEGACY_ANGLE = {"MUCUS": "Mucus", "JOINT": "Joint", "HEART": "Heart Health",
+                "BLOOD PRESSURE": "Heart Health", "BLOOD FLOW": "Heart Health",
+                "TESTO": "Testosterone", "SUPERFOOD": "Superfood", "KIDNEY": "Kidney",
+                "THYROID": "Thyroid", "GUM": "Gum", "WEIGHT LOSS": "Weight Loss",
+                "SEA MOSS": None}
+MATURE_DAYS = 14
+
+
+def load_semi(path, cols):
+    """Semicolon files exported from the Triple Whale SQL editor (header row first)."""
+    if not path or not path.exists():
+        return []
+    lines = path.read_text().splitlines()
+    return [dict(zip(cols, l.split(";", len(cols) - 1))) for l in lines[1:] if l.strip()]
+
+
+def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=None):
     rows = list(csv.DictReader(open(csv_path, encoding="utf-8-sig")))
     tw = load_tw(tw_path)
+    launch = {r["ad_id"]: r for r in load_semi(
+        launch_path, ["ad_id", "first_day", "spend_d14", "rev_d14", "nc_rev_d14", "image_url"])}
+    weekly = defaultdict(list)
+    for r in load_semi(weekly_path, ["ad_id", "week", "spend", "rev", "nc_rev", "nc_orders"]):
+        weekly[r["ad_id"]].append(r)
+    weeks = sorted({r["week"] for rs in weekly.values() for r in rs})
+    widx = {w: i for i, w in enumerate(weeks)}
     by_id, by_name = load_master(master_path)
     starts = sorted(r["Reporting starts"] for r in rows if r.get("Reporting starts"))
     ends = sorted(r["Reporting ends"] for r in rows if r.get("Reporting ends"))
@@ -147,12 +171,21 @@ def build(csv_path, master_path, tw_path=None):
             else:
                 tags = {}
                 status, convention = "Legacy name — untagged", "untagged"
+                legacy = parse_ad_name(top["Ad name"], top.get("Campaign name"))
+                ang = LEGACY_ANGLE.get(legacy.get("angle") or "", None)
+                fmt = legacy.get("format")
+                if ang or fmt:
+                    tags = {"angle": ang, "format": fmt.title() if fmt else None,
+                            "creative_no": legacy.get("creative_no")}
+                    status, convention = "Legacy name — angle/format inferred from name", "inferred"
         nr = parse_nr(key)
         if nr and not tags.get("format"):
             tags["format"] = nr["format"]
 
         camps = [parse_campaign(c) for c in campaigns]
-        first = sorted(t["first_day"] for t in twr if t.get("first_day"))
+        lr = [launch[i] for i in ad_ids if i in launch]
+        first = sorted([t["first_day"] for t in lr if t.get("first_day")] or
+                       [t["first_day"] for t in twr if t.get("first_day")])
         if first:
             dates = [first[0][2:4] + first[0][5:7] + first[0][8:10]]
         else:
@@ -187,6 +220,19 @@ def build(csv_path, master_path, tw_path=None):
         metrics["cpm"] = round(spend / imps * 1000, 4) if imps else 0
         metrics["cpc"] = round(spend / clicks, 4) if clicks else None
         metrics["ctr"] = round(clicks / imps * 100, 4) if imps else None
+        if lr:
+            s14 = sum(num(t["spend_d14"]) for t in lr)
+            n14 = sum(num(t["nc_rev_d14"]) for t in lr)
+            metrics["spend_d14"] = round(s14, 2)
+            metrics["nc_rev_d14"] = round(n14, 2)
+            metrics["ncroas_d14"] = round(n14 / s14, 4) if s14 else None
+
+        wk = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])
+        for i in ad_ids:
+            for r in weekly.get(i, []):
+                v = wk[widx[r["week"]]]
+                v[0] += num(r["spend"]); v[1] += num(r["rev"]); v[2] += num(r["nc_rev"]); v[3] += num(r["nc_orders"])
+        image = next((t["image_url"] for t in lr if t.get("image_url")), None)
 
         rec = {
             "ad_name": key,
@@ -202,11 +248,25 @@ def build(csv_path, master_path, tw_path=None):
             "date": dates[0] if dates else None,
             "launch_date": (f"20{dates[0][:2]}-{dates[0][2:4]}-{dates[0][4:]}" if dates else None),
             "meta_ad_ids": ad_ids, "metrics": metrics,
-            "thumbnail_candidates": [f"{THUMB_CDN}/{ACCOUNT}/{i}.jpg" for i in ad_ids[:3]],
-            "thumbnail_url": f"{THUMB_CDN}/{ACCOUNT}/{ad_ids[0]}.jpg",
+            "wk": [[k, round(v[0], 2), round(v[1], 2), round(v[2], 2), v[3]] for k, v in sorted(wk.items())],
+            "thumbnail_candidates": ([image] if image else []) + [f"{THUMB_CDN}/{ACCOUNT}/{i}.jpg" for i in ad_ids[:2]],
+            "thumbnail_url": image or f"{THUMB_CDN}/{ACCOUNT}/{ad_ids[0]}.jpg",
             "preview_link": f"https://business.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_ids[0]}",
         }
         ads.append(rec)
+
+    # Launch status relative to the reporting window: carry-over creatives were
+    # already spending before it started; immature ones launched too recently to
+    # have had a fair chance to scale. Both are excluded from launch win rates.
+    start_yy = starts[0][2:4] + starts[0][5:7] + starts[0][8:10]
+    end_dt = datetime.strptime(ends[-1], "%Y-%m-%d")
+    for a in ads:
+        d = a["date"]
+        a["carry_over"] = bool(d and d < start_yy)
+        a["mature"] = bool(d and (end_dt - datetime.strptime("20" + d, "%Y%m%d")).days >= MATURE_DAYS)
+        a["launch_status"] = ("Carry-over (live before window)" if a["carry_over"] else
+                              "Launched in window" if a["mature"] else
+                              f"Too new (< {MATURE_DAYS} days)")
 
     ads.sort(key=lambda a: -a["metrics"]["spend"])
     for i, a in enumerate(ads, 1):
@@ -216,7 +276,12 @@ def build(csv_path, master_path, tw_path=None):
     tot = sum(a["metrics"]["spend"] for a in ads) or 1
     s_ren = sum(a["metrics"]["spend"] for a in ads if a["convention"] == "renamed")
     s_tag = sum(a["metrics"]["spend"] for a in ads if a["convention"] != "untagged")
+    tot_rev = sum(a["metrics"]["rev"] for a in ads)
+    tot_nc = sum(a["metrics"]["nc_rev"] for a in ads)
     return {
+        "weeks": weeks,
+        "mature_days": MATURE_DAYS,
+        "baseline": {"roas": round(tot_rev / tot, 4), "ncroas": round(tot_nc / tot, 4)},
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "period": {"start": starts[0], "end": ends[-1]},
         "source": f"meta-ads-manager-export:{csv_path.name}",
@@ -232,11 +297,11 @@ def build(csv_path, master_path, tw_path=None):
             f"Every ad that spent in {ACCOUNT}, {starts[0]} → {ends[-1]}, rolled up to "
             f"{len(ads):,} creatives. {n_ren:,} carry the new taxonomy in their name "
             f"({s_ren/tot:.0%} of spend); legacy names are tagged from the MASTER "
-            f"workbook where possible ({s_tag/tot:.0%} of spend tagged in total) and "
-            "otherwise show as (untagged). "
+            "workbook or, failing that, angle/format are inferred from the old name "
+            f"({s_tag/tot:.0%} of spend tagged in total); the rest shows as (untagged). "
             + ("Revenue, ROAS and new-customer figures are Triple Whale (Triple Attribution, "
-               "7-day); launch date = first spend day in this window, so ads live before "
-               f"{starts[0]} show as launched on {starts[0]}." if tw else
+               "7-day); launch date = the ad's first spend day ever. Launch win rates count "
+               f"only creatives launched in the window and at least {MATURE_DAYS} days old." if tw else
                "Revenue and ROAS are Meta-attributed; Triple Whale new-customer metrics "
                "are not in this export.")
         ),
@@ -247,15 +312,18 @@ def build(csv_path, master_path, tw_path=None):
 
 def main():
     if len(sys.argv) < 2:
-        sys.exit("usage: build_from_meta_csv.py <meta export .csv> [MASTER .xlsx] [triple whale .csv]")
+        sys.exit("usage: build_from_meta_csv.py <meta.csv> [MASTER.xlsx] [tw_ads.csv] "
+                 "[tw_launch_d14.csv] [tw_weekly.csv]")
     src = pathlib.Path(sys.argv[1])
     master = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else None
     twp = pathlib.Path(sys.argv[3]) if len(sys.argv) > 3 else None
+    lp = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else None
+    wp = pathlib.Path(sys.argv[5]) if len(sys.argv) > 5 else None
     root = pathlib.Path(__file__).resolve().parent.parent
     out = root / "public" / "data"
     (out / "history").mkdir(parents=True, exist_ok=True)
 
-    m = build(src, master, twp)
+    m = build(src, master, twp, lp, wp)
     (out / "latest.json").write_text(json.dumps(m, separators=(",", ":"), default=str))
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     with gzip.open(out / "history" / f"{stamp}.json.gz", "wt") as f:
@@ -274,7 +342,7 @@ def main():
         matched = sum(a["metrics"]["spend"] for a in ads if a["metrics"]["visitors"] or a["metrics"]["rev"])
         print(f"NC rev ${nc:,.0f} (NCROAS {nc/spend:.2f}x) · Meta rev ${meta:,.0f} · new visitors {nv/v:.1%}"
               f" · spend with TW data {matched/spend:.1%}")
-    for c in ("renamed", "master", "untagged"):
+    for c in ("renamed", "master", "inferred", "untagged"):
         s = sum(a["metrics"]["spend"] for a in ads if a["convention"] == c)
         print(f"  {c:<9} {sum(1 for a in ads if a['convention']==c):>5} creatives  ${s:>12,.0f}  {s/spend:5.1%}")
     print("dimension coverage (by spend):")
