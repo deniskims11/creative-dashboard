@@ -328,7 +328,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
         "baseline": {"roas": round(tot_rev / tot, 4), "ncroas": round(tot_nc / tot, 4)},
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "period": {"start": starts[0], "end": ends[-1]},
-        "source": f"meta-ads-manager-export:{csv_path.name}",
+        "source": ("triple-whale-sql-api" if csv_path.name == "meta_ads.csv" else f"meta-ads-manager-export:{csv_path.name}"),
         "shop": "18b070.myshopify.com",
         "has_nc": bool(tw),
         "attribution": ({"primary": "Triple Whale Pixel Joined · Triple Attribution · 7-day",
