@@ -84,6 +84,11 @@ def parse_nr(name):
 def load_master(path):
     if not path or not path.exists():
         return {}, {}
+    if path.suffix == ".json":
+        # Committed tag lookup (data/master_tags.json) so the scheduled refresh
+        # doesn't need the workbook. Regenerate with --dump-master.
+        m = json.loads(path.read_text())
+        return m["by_id"], m["by_name"]
     from xlsx_read import read_sheet
     rows = read_sheet(str(path), "xl/worksheets/sheet1.xml")
     head = [str(h or "").strip() for h in rows[0]]
@@ -350,6 +355,10 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
 
 
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "--dump-master":
+        by_id, by_name = load_master(pathlib.Path(sys.argv[2]))
+        pathlib.Path(sys.argv[3]).write_text(json.dumps({"by_id": by_id, "by_name": by_name}, indent=0))
+        return print(f"{len(by_id)} ids, {len(by_name)} names")
     if len(sys.argv) < 2:
         sys.exit("usage: build_from_meta_csv.py <meta.csv> [MASTER.xlsx] [tw_ads.csv] "
                  "[tw_launch_d14.csv] [tw_weekly.csv]")

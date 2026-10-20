@@ -1,12 +1,14 @@
 name: Deploy to GitHub Pages
 
+# Every run pulls fresh data from the Triple Whale SQL API (when the TW_API_KEY
+# secret is set), rebuilds the manifest and publishes. Without the secret it
+# deploys the committed public/data/latest.json as before.
 on:
   push:
     branches: [main]
-  workflow_run:
-    workflows: ["Refresh Triple Whale data"]
-    types: [completed]
-    branches: [main]
+  schedule:
+    # Daily 11:00 UTC (07:00 ET), once yesterday's Triple Whale data has settled.
+    - cron: '0 11 * * *'
   workflow_dispatch:
 
 permissions:
@@ -23,6 +25,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Refresh data from Triple Whale
+        env:
+          TW_API_KEY: ${{ secrets.TW_API_KEY }}
+        run: |
+          if [ -z "$TW_API_KEY" ]; then
+            echo "::notice::TW_API_KEY not set — deploying the committed data."
+          else
+            python3 scripts/fetch_tw_sql.py --days 120
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

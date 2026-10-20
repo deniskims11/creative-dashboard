@@ -8,6 +8,20 @@ Natural Rems' ad-naming conventions.
 
 ## How it works
 
+**Automatic daily refresh (Oct 2026).** `.github/workflows/deploy-pages.yml` runs
+every day at 11:00 UTC (and on every push / manual "Run workflow"). It calls
+`scripts/fetch_tw_sql.py`, which queries the Triple Whale SQL API
+(`POST /api/v2/orcabase/api/sql`, header `x-api-key`) for the last 120 days ending
+yesterday: per-ad daily rows, names/campaign/ad set + Meta-reported conversions,
+and each ad's lifetime first spend day + thumbnail. Weekly and day-14 launch
+figures are derived from the daily rows, then `build_from_meta_csv.py` builds the
+manifest and Pages publishes it. Nothing is committed; legacy tags come from
+`data/master_tags.json` (regenerate with
+`python3 scripts/build_from_meta_csv.py --dump-master <MASTER.xlsx> data/master_tags.json`).
+Run it locally with `TW_API_KEY=... python3 scripts/fetch_tw_sql.py`.
+
+The sections below describe the earlier manual pipelines.
+
 ```
 MASTER workbook ──► scripts/build_from_master_xlsx.py ─┐
   (reviewed naming, manual)                            ├─► public/data/latest.json ──► React SPA
@@ -109,11 +123,9 @@ Also changed: creative previews come from Triple Whale's own thumbnail CDN
 
 | Secret | Where | Purpose |
 |---|---|---|
-| `TW_CLIENT_ID` | Triple Whale → Settings → API Keys (admin only) | data refresh |
-| `TW_CLIENT_SECRET` | same | data refresh |
+| `TW_API_KEY` | Triple Whale → API Keys (shop 18b070.myshopify.com), scopes Summary Page + Pixel Attribution read | daily refresh |
 
-Until these exist the refresh job **no-ops with a notice** instead of failing,
-so the repo does not sit red.
+Without it the deploy publishes the committed `public/data/latest.json`.
 
 ### Local
 
