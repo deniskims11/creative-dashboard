@@ -131,10 +131,13 @@ export function monthly(ads) {
 
 // Win rate: for each launch month, count creatives by spend threshold.
 // Denominators exclude never-spent creatives.
-export function winRate(ads, formatFilter = "blended") {
+export function winRate(ads, formatFilter = "blended", strategistFilter = "all") {
   let filtered = ads.filter(launchEligible);
   if (formatFilter !== "blended") {
     filtered = filtered.filter((a) => a.format === formatFilter);
+  }
+  if (strategistFilter !== "all") {
+    filtered = filtered.filter((a) => (a.strategist ?? "(untagged)") === strategistFilter);
   }
 
   const byMonth = new Map();
@@ -262,6 +265,7 @@ export const DIMENSIONS = [
   "convention",
   "strategist",
   "launch_status",
+  "funnel",
 ];
 
 export function dimensionValues(ads, dim) {

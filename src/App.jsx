@@ -380,6 +380,7 @@ export default function Dashboard() {
 
   // Win Rate state
   const [wrFormat, setWrFormat] = useState("blended");
+  const [wrStrategist, setWrStrategist] = useState("all");
   const [wrThreshold, setWrThreshold] = useState("$1K");
 
   // Breakdowns state
@@ -461,7 +462,19 @@ export default function Dashboard() {
   const [wkDim, setWkDim] = useState("angle");
   const weeklyTotals = useMemo(() => weekly(ads, manifest?.weeks), [ads, manifest]);
   const weeklyMix = useMemo(() => weekly(ads, manifest?.weeks, wkDim, 6), [ads, manifest, wkDim]);
-  const wrData = useMemo(() => winRate(ads, wrFormat), [ads, wrFormat]);
+  const wrData = useMemo(() => winRate(ads, wrFormat, wrStrategist), [ads, wrFormat, wrStrategist]);
+  const strategistList = useMemo(
+    () => Array.from(new Set(ads.map(a => a.strategist).filter(Boolean))).sort(),
+    [ads]
+  );
+  // Strategist × win-rate matrix: one row per strategist, columns = thresholds.
+  const wrByStrategist = useMemo(
+    () => ["(untagged)", ...strategistList].map(s => ({ name: s, rows: winRate(ads, wrFormat, s) }))
+      .map(x => ({ name: x.name, total: x.rows.find(r => r.month === "TOTAL") }))
+      .filter(x => x.total && x.total.total > 0),
+    [ads, wrFormat, strategistList]
+  );
+  const funnels = useMemo(() => toBreakdownRows(groupBy(ads, "funnel")), [ads]);
   const concepts = useMemo(() => toBreakdownRows(groupBy(ads, "concept")), [ads]);
   const angles = useMemo(() => toBreakdownRows(groupBy(ads, "angle")), [ads]);
   const icps = useMemo(() => toBreakdownRows(groupBy(ads, "icp")), [ads]);
@@ -868,6 +881,12 @@ export default function Dashboard() {
                 <option value="blended">All formats</option>
                 {formatList.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
+              <select value={wrStrategist} onChange={e => setWrStrategist(e.target.value)}
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                <option value="all">All strategists</option>
+                {strategistList.map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="(untagged)">(no strategist in name)</option>
+              </select>
               <select value={wrThreshold} onChange={e => setWrThreshold(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
                 {wrCols(wrData).map(t => <option key={t} value={t}>{t === "Efficient" ? "Efficient win ($1K + NCROAS ≥ account)" : `Threshold: ${t}`}</option>)}
@@ -894,6 +913,39 @@ export default function Dashboard() {
             </div>
 
             <WinRateTable wrData={wrData} />
+
+            {wrByStrategist.length > 1 && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto", marginTop: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Hit rate by strategist</h3>
+                <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 12px" }}>Share of each strategist's eligible launches reaching each spend level. Strategist comes from the 10th field of renamed ad names, so older launches sit under "(untagged)". $50K+ lags — recent launches are still climbing.</p>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+                      <th style={{ ...th, textAlign: "left" }}>Strategist</th>
+                      <th style={{ ...th, textAlign: "right" }}>Launches</th>
+                      {wrCols(wrData).map(t => <th key={t} style={{ ...th, textAlign: "center" }}>{t}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wrByStrategist.map(x => (
+                      <tr key={x.name} style={{ borderBottom: "1px solid #F5EDE5" }}>
+                        <td style={{ ...td, fontWeight: 600 }}>{x.name}</td>
+                        <td style={{ ...td, textAlign: "right" }}>{fmtNum(x.total.total)}</td>
+                        {wrCols(wrData).map(t => {
+                          const d = x.total.thresholds[t];
+                          return (
+                            <td key={t} style={{ padding: "6px 6px", textAlign: "center", color: x.total.total < 10 ? "#cbb8b0" : undefined }}>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>{d?.n ?? 0}</div>
+                              <div style={{ fontSize: 10 }}>{(d?.rate ?? 0).toFixed(1)}%</div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -921,7 +973,7 @@ export default function Dashboard() {
         {tab === "Breakdowns" && (
           <div>
             <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginBottom: 16, width: "fit-content" }}>
-              {["Format", "Awareness Stage", "Script", "Strategist", "Launch Status", "Angle × Concept"].map(v => (
+              {["Funnel (TOF/MOF/BOF)", "Format", "Awareness Stage", "Script", "Strategist", "Launch Status", "Angle × Concept"].map(v => (
                 <button key={v} onClick={() => setBdView(v)} style={{
                   padding: "6px 14px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
                   background: bdView === v ? "#fff" : "transparent", color: bdView === v ? "#50000B" : "#8a6f68",
@@ -940,6 +992,14 @@ export default function Dashboard() {
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Script / Hook ({scripts.length})</h3>
                 <BreakdownTable rows={scripts} nameLabel="Script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+              </div>
+            )}
+
+            {bdView === "Funnel (TOF/MOF/BOF)" && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Account efficiency by funnel stage</h3>
+                <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 12px" }}>TOF = Unaware / Problem Aware, MOF = Solution Aware, BOF = Product / Most Aware (from the awareness field); NR_ names use their own TOF/MOF/BOF token. For strategist × funnel, use Analysis → Strategist then Funnel Stage.</p>
+                <BreakdownTable rows={funnels} nameLabel="Funnel" onRowClick={r => openModal(`Funnel: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 

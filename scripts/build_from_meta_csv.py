@@ -117,6 +117,17 @@ LEGACY_ANGLE = {"MUCUS": "Mucus", "JOINT": "Joint", "HEART": "Heart Health",
                 "THYROID": "Thyroid", "GUM": "Gum", "WEIGHT LOSS": "Weight Loss",
                 "SEA MOSS": None}
 MATURE_DAYS = 14
+AWARENESS = ["Unaware", "Problem Aware", "Solution Aware", "Product Aware", "Most Aware"]
+FUNNEL_OF = {"Unaware": "TOF", "Problem Aware": "TOF", "Solution Aware": "MOF",
+             "Product Aware": "BOF", "Most Aware": "BOF"}
+
+
+def norm_awareness(v):
+    """'Problem Aware-BED-RITUAL_V1', 'Problem Aware.' -> 'Problem Aware'."""
+    if not v:
+        return None
+    low = v.lower()
+    return next((a for a in AWARENESS if low.startswith(a.lower())), v)
 
 
 def load_semi(path, cols):
@@ -234,11 +245,13 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                 v[0] += num(r["spend"]); v[1] += num(r["rev"]); v[2] += num(r["nc_rev"]); v[3] += num(r["nc_orders"])
         image = next((t["image_url"] for t in lr if t.get("image_url")), None)
 
+        tags["awareness_stage"] = norm_awareness(tags.get("awareness_stage"))
+        funnel = (nr and nr["funnel"]) or FUNNEL_OF.get(tags.get("awareness_stage"))
         rec = {
             "ad_name": key,
             "new_ad_name": key if convention == "renamed" else None,
             **{k: tags.get(k) for k in TAXONOMY + EXTRA},
-            "funnel": nr["funnel"] if nr else None,
+            "funnel": funnel,
             "naming_status": status, "reviewed": convention != "untagged",
             "convention": convention,
             "campaign": top.get("Campaign name"), "adset": top.get("Ad set name"),
