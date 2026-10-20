@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Cell, ComposedChart,
 } from "recharts";
 import {
-  aggregate, groupBy, monthly, winRate, toBreakdownRows, weekly,
+  aggregate, groupBy, monthly, winRate, toBreakdownRows, weekly, weeklyFromDaily,
   DIMENSIONS, dimensionValues, BASELINE, setBaseline,
 } from "./aggregator.js";
 
@@ -35,14 +35,22 @@ const yymmddToIso = (s) => s && /^\d{6}$/.test(s) ? `20${s.slice(0, 2)}-${s.slic
 const isoToYymmdd = (s) => s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10) : null;
 
 // Creation-date range picker shown above the tabs.
-function DateRangePicker({ bounds, start, end, setStart, setEnd }) {
+function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, canActivity }) {
   if (!bounds) return null;
   const minIso = yymmddToIso(bounds.min);
   const maxIso = yymmddToIso(bounds.max);
   const isFiltered = start || end;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "#fff", border: "1px solid #E8DCD0", borderRadius: 8, flexWrap: "wrap" }}>
-      <div style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Launch date</div>
+      {canActivity ? (
+        <select value={mode} onChange={e => { setMode(e.target.value); setStart(null); setEnd(null); }}
+          style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 11, fontWeight: 600, color: "#3a2429", textTransform: "uppercase", letterSpacing: 0.3 }}>
+          <option value="activity">Date range (spend in period)</option>
+          <option value="launch">Launch date (cohort)</option>
+        </select>
+      ) : (
+        <div style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Launch date</div>
+      )}
       <input type="date" value={yymmddToIso(start) || minIso} min={minIso} max={maxIso}
         onChange={e => setStart(isoToYymmdd(e.target.value))}
         style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }} />
@@ -54,12 +62,48 @@ function DateRangePicker({ bounds, start, end, setStart, setEnd }) {
         <button onClick={() => { setStart(null); setEnd(null); }}
           style={{ padding: "4px 10px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Reset</button>
       )}
-      <span title="Filters creatives by launch date — the first day the creative recorded spend. Spend and revenue shown are lifetime totals for creatives launched in this range."
-        style={{ marginLeft: "auto", fontSize: 10, color: "#b0978f", cursor: "help", fontStyle: "italic" }}>
-        ⓘ Filters by launch date (first day with spend) — figures are lifetime for creatives launched in range
+      <span style={{ marginLeft: "auto", fontSize: 10, color: "#b0978f", fontStyle: "italic" }}>
+        {mode === "activity" && canActivity
+          ? `ⓘ All figures are what was spent and earned between these dates (data through ${yymmddToIso(bounds.max)})`
+          : "ⓘ Shows creatives first launched in this range — their figures are lifetime totals, not period totals"}
       </span>
     </div>
   );
+}
+
+// Activity-date filter: rebuild every creative's metrics from its daily rows
+// ([dayIdx, spend, rev, orders, nc_rev, nc_orders, new_visitors, visitors,
+// impressions, clicks]) inside the selected range, so totals are exactly what
+// was spent and earned in that period. Creatives with no activity drop out.
+function periodAds(ads, days, startYy, endYy) {
+  const iso = (yy) => (yy ? `20${yy.slice(0, 2)}-${yy.slice(2, 4)}-${yy.slice(4, 6)}` : null);
+  const s = iso(startYy), e = iso(endYy);
+  const lo = s ? days.findIndex(d => d >= s) : 0;
+  let hi = e ? days.length - 1 - [...days].reverse().findIndex(d => d <= e) : days.length - 1;
+  if (lo < 0 || hi < lo) return [];
+  const out = [];
+  for (const a of ads) {
+    const t = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (const r of a.dd || []) {
+      if (r[0] < lo || r[0] > hi) continue;
+      for (let j = 0; j < 9; j++) t[j] += r[j + 1];
+    }
+    const [spend, rev, txns, nc_rev, nc_txns, nv, vis, imps, clicks] = t;
+    if (spend <= 0 && rev <= 0) continue;
+    const m = {
+      ...a.metrics, spend, rev, txns, pixel_rev: rev, pixel_txns: txns, nc_rev, nc_txns,
+      new_visitors: nv, visitors: vis, impressions: imps, clicks,
+      roas: spend ? rev / spend : 0, pixel_roas: spend ? rev / spend : 0,
+      ncroas: spend ? nc_rev / spend : null, nccpa: nc_txns ? spend / nc_txns : null,
+      pct_new: txns ? (nc_txns / txns) * 100 : null, pct_new_visitors: vis ? (nv / vis) * 100 : null,
+      aov: txns ? rev / txns : null, cpa: txns ? spend / txns : null,
+      cpm: imps ? (spend / imps) * 1000 : 0, cpc: clicks ? spend / clicks : null,
+      ctr: imps ? (clicks / imps) * 100 : null,
+    };
+    // Weekly rows trimmed to the same range, rebuilt from daily data.
+    out.push({ ...a, metrics: m });
+  }
+  return out;
 }
 
 // Sortable header that cycles through desc → asc → none on click.
@@ -403,6 +447,7 @@ export default function Dashboard() {
 
   // Creation-date filter. Null = "full range"; otherwise YYMMDD strings.
   const [dateStart, setDateStart] = useState(null);
+  const [dateMode, setDateMode] = useState("activity");
   const [dateEnd, setDateEnd] = useState(null);
 
   // Global modal state (shared across tabs)
@@ -428,18 +473,25 @@ export default function Dashboard() {
   }, []);
 
   // Bounds of ad creation dates in the raw data (YYMMDD strings).
+  const canActivity = !!(manifest?.days?.length);
   const dateBounds = useMemo(() => {
+    if (canActivity && dateMode === "activity") {
+      const toYy = (d) => d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10);
+      return { min: toYy(manifest.days[0]), max: toYy(manifest.days[manifest.days.length - 1]) };
+    }
     const dates = (manifest?.ads ?? []).map(a => a.date).filter(d => d && /^\d{6}$/.test(d));
     if (!dates.length) return null;
     return { min: dates.reduce((a, b) => a < b ? a : b), max: dates.reduce((a, b) => a > b ? a : b) };
-  }, [manifest]);
+  }, [manifest, dateMode, canActivity]);
 
   // Apply mappings + creation-date filter to ads.
   const ads = useMemo(() => {
     // Baseline must be in place before any memo below derives badges / efficient wins.
     setBaseline(manifest?.baseline);
     let raw = manifest?.ads ?? [];
-    if (dateStart || dateEnd) {
+    if ((dateStart || dateEnd) && canActivity && dateMode === "activity") {
+      raw = periodAds(raw, manifest.days, dateStart, dateEnd);
+    } else if (dateStart || dateEnd) {
       raw = raw.filter(a => {
         if (!a.date || !/^\d{6}$/.test(a.date)) return false;
         if (dateStart && a.date < dateStart) return false;
@@ -455,24 +507,32 @@ export default function Dashboard() {
       }
       return copy;
     });
-  }, [manifest, mappings, dateStart, dateEnd]);
+  }, [manifest, mappings, dateStart, dateEnd, dateMode, canActivity]);
 
   const totals = useMemo(() => aggregate(ads), [ads]);
   const monthlyData = useMemo(() => monthly(ads), [ads]);
   const [wkDim, setWkDim] = useState("angle");
-  const weeklyTotals = useMemo(() => weekly(ads, manifest?.weeks), [ads, manifest]);
-  const weeklyMix = useMemo(() => weekly(ads, manifest?.weeks, wkDim, 6), [ads, manifest, wkDim]);
-  const wrData = useMemo(() => winRate(ads, wrFormat, wrStrategist), [ads, wrFormat, wrStrategist]);
+  const isoOf = (yy) => (yy ? `20${yy.slice(0, 2)}-${yy.slice(2, 4)}-${yy.slice(4, 6)}` : null);
+  const wkRange = canActivity && dateMode === "activity" ? [isoOf(dateStart), isoOf(dateEnd)] : [null, null];
+  const weeklyTotals = useMemo(() => (canActivity
+    ? weeklyFromDaily(ads, manifest.days, wkRange[0], wkRange[1])
+    : weekly(ads, manifest?.weeks)), [ads, manifest, canActivity, wkRange[0], wkRange[1]]);
+  const weeklyMix = useMemo(() => (canActivity
+    ? weeklyFromDaily(ads, manifest.days, wkRange[0], wkRange[1], wkDim, 6)
+    : weekly(ads, manifest?.weeks, wkDim, 6)), [ads, manifest, canActivity, wkDim, wkRange[0], wkRange[1]]);
+  // Win rates are launch-cohort metrics, so the activity-date filter doesn't apply.
+  const wrAds = useMemo(() => (dateMode === "activity" && canActivity ? (manifest?.ads ?? []) : ads), [ads, manifest, dateMode, canActivity]);
+  const wrData = useMemo(() => winRate(wrAds, wrFormat, wrStrategist), [wrAds, wrFormat, wrStrategist]);
   const strategistList = useMemo(
     () => Array.from(new Set(ads.map(a => a.strategist).filter(Boolean))).sort(),
     [ads]
   );
   // Strategist × win-rate matrix: one row per strategist, columns = thresholds.
   const wrByStrategist = useMemo(
-    () => ["(untagged)", ...strategistList].map(s => ({ name: s, rows: winRate(ads, wrFormat, s) }))
+    () => ["(untagged)", ...strategistList].map(s => ({ name: s, rows: winRate(wrAds, wrFormat, s) }))
       .map(x => ({ name: x.name, total: x.rows.find(r => r.month === "TOTAL") }))
       .filter(x => x.total && x.total.total > 0),
-    [ads, wrFormat, strategistList]
+    [wrAds, wrFormat, strategistList]
   );
   const funnels = useMemo(() => toBreakdownRows(groupBy(ads, "funnel")), [ads]);
   const concepts = useMemo(() => toBreakdownRows(groupBy(ads, "concept")), [ads]);
@@ -726,6 +786,9 @@ export default function Dashboard() {
         )}
 
         <DateRangePicker
+          mode={dateMode}
+          setMode={setDateMode}
+          canActivity={canActivity}
           bounds={dateBounds}
           start={dateStart}
           end={dateEnd}

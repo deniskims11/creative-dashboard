@@ -138,7 +138,7 @@ def load_semi(path, cols):
     return [dict(zip(cols, l.split(";", len(cols) - 1))) for l in lines[1:] if l.strip()]
 
 
-def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=None):
+def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=None, daily_path=None):
     rows = list(csv.DictReader(open(csv_path, encoding="utf-8-sig")))
     tw = load_tw(tw_path)
     launch = {r["ad_id"]: r for r in load_semi(
@@ -147,6 +147,15 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
     for r in load_semi(weekly_path, ["ad_id", "week", "spend", "rev", "nc_rev", "nc_orders"]):
         weekly[r["ad_id"]].append(r)
     weeks = sorted({r["week"] for rs in weekly.values() for r in rs})
+    # Daily per-ad Triple Whale rows. When present they are the single source of
+    # truth for every metric, so any date range the UI selects sums to the same
+    # numbers as the full window.
+    daily = defaultdict(list)
+    for r in load_semi(daily_path, ["ad_id", "date", "spend", "rev", "orders", "nc_rev",
+                                    "nc_orders", "new_visitors", "visitors", "impressions", "clicks"]):
+        daily[r["ad_id"]].append(r)
+    days = sorted({r["date"] for rs in daily.values() for r in rs})
+    didx = {d: i for i, d in enumerate(days)}
     widx = {w: i for i, w in enumerate(weeks)}
     by_id, by_name = load_master(master_path)
     starts = sorted(r["Reporting starts"] for r in rows if r.get("Reporting starts"))
@@ -203,14 +212,27 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
             dates = sorted(d for d in [c["launch_date"] for c in camps] + [nr and nr["date"]] if d)
         camp = parse_campaign(top.get("Campaign name"))
 
+        dd = defaultdict(lambda: [0.0] * 9)
+        for i in ad_ids:
+            for r in daily.get(i, []):
+                v = dd[didx[r["date"]]]
+                for j, f in enumerate(["spend", "rev", "orders", "nc_rev", "nc_orders",
+                                       "new_visitors", "visitors", "impressions", "clicks"]):
+                    v[j] += num(r[f])
+        if daily:
+            tot_d = [sum(v[j] for v in dd.values()) for j in range(9)]
+            spend, imps, clicks = tot_d[0], tot_d[7], tot_d[8]
         meta_rev, meta_txns = rev, txns
-        if tw:
-            rev = sum(num(t["pixel_rev"]) for t in twr)
-            txns = sum(num(t["pixel_orders"]) for t in twr)
-        nc_rev = sum(num(t["nc_rev"]) for t in twr)
-        nc_txns = sum(num(t["nc_orders"]) for t in twr)
-        new_vis = sum(num(t["new_visitors"]) for t in twr)
-        vis = sum(num(t["visitors"]) for t in twr)
+        if daily:
+            rev, txns, nc_rev, nc_txns, new_vis, vis = tot_d[1], tot_d[2], tot_d[3], tot_d[4], tot_d[5], tot_d[6]
+        else:
+            if tw:
+                rev = sum(num(t["pixel_rev"]) for t in twr)
+                txns = sum(num(t["pixel_orders"]) for t in twr)
+            nc_rev = sum(num(t["nc_rev"]) for t in twr)
+            nc_txns = sum(num(t["nc_orders"]) for t in twr)
+            new_vis = sum(num(t["new_visitors"]) for t in twr)
+            vis = sum(num(t["visitors"]) for t in twr)
         metrics = {
             "spend": round(spend, 2), "rev": round(rev, 2), "txns": txns,
             "pixel_rev": round(rev, 2), "pixel_txns": txns,
@@ -262,6 +284,8 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
             "launch_date": (f"20{dates[0][:2]}-{dates[0][2:4]}-{dates[0][4:]}" if dates else None),
             "meta_ad_ids": ad_ids, "metrics": metrics,
             "wk": [[k, round(v[0], 2), round(v[1], 2), round(v[2], 2), v[3]] for k, v in sorted(wk.items())],
+            # [dayIdx, spend, rev, orders, nc_rev, nc_orders, new_visitors, visitors, impressions, clicks]
+            "dd": [[k] + [round(x, 2) for x in v] for k, v in sorted(dd.items())],
             "thumbnail_candidates": ([image] if image else []) + [f"{THUMB_CDN}/{ACCOUNT}/{i}.jpg" for i in ad_ids[:2]],
             "thumbnail_url": image or f"{THUMB_CDN}/{ACCOUNT}/{ad_ids[0]}.jpg",
             "preview_link": f"https://business.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_ids[0]}",
@@ -281,6 +305,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                               "Launched in window" if a["mature"] else
                               f"Too new (< {MATURE_DAYS} days)")
 
+    ads = [a for a in ads if a["metrics"]["spend"] > 0 or a["metrics"]["rev"] > 0]
     ads.sort(key=lambda a: -a["metrics"]["spend"])
     for i, a in enumerate(ads, 1):
         a["spend_rank"] = i
@@ -293,6 +318,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
     tot_nc = sum(a["metrics"]["nc_rev"] for a in ads)
     return {
         "weeks": weeks,
+        "days": days,
         "mature_days": MATURE_DAYS,
         "baseline": {"roas": round(tot_rev / tot, 4), "ncroas": round(tot_nc / tot, 4)},
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -332,11 +358,12 @@ def main():
     twp = pathlib.Path(sys.argv[3]) if len(sys.argv) > 3 else None
     lp = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else None
     wp = pathlib.Path(sys.argv[5]) if len(sys.argv) > 5 else None
+    dp = pathlib.Path(sys.argv[6]) if len(sys.argv) > 6 else None
     root = pathlib.Path(__file__).resolve().parent.parent
     out = root / "public" / "data"
     (out / "history").mkdir(parents=True, exist_ok=True)
 
-    m = build(src, master, twp, lp, wp)
+    m = build(src, master, twp, lp, wp, dp)
     (out / "latest.json").write_text(json.dumps(m, separators=(",", ":"), default=str))
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     with gzip.open(out / "history" / f"{stamp}.json.gz", "wt") as f:

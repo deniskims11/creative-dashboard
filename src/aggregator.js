@@ -217,6 +217,34 @@ export function toBreakdownRows(groups) {
 // Calendar-week series (from each creative's "wk" rows: [weekIdx, spend, rev,
 // nc_rev, nc_orders]). With a dim, also splits weekly spend across the top-N
 // values of that dimension (everything else lands in "Other").
+// Daily-based variant: when the manifest carries per-day rows ("dd" + days),
+// weeks are built from the days inside [startIso, endIso], so the chart always
+// matches the selected period.
+export function weeklyFromDaily(ads, days, startIso, endIso, dim = null, topN = 6) {
+  const monday = (iso) => {
+    const d = new Date(iso + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const inRange = (iso) => (!startIso || iso >= startIso) && (!endIso || iso <= endIso);
+  const wkOf = days.map((d) => (inRange(d) ? monday(d) : null));
+  const weeks = [...new Set(wkOf.filter(Boolean))].sort();
+  const widx = new Map(weeks.map((w, i) => [w, i]));
+  const conv = ads.map((a) => {
+    const acc = new Map();
+    for (const r of a.dd || []) {
+      const w = wkOf[r[0]];
+      if (!w) continue;
+      const i = widx.get(w);
+      const v = acc.get(i) || [i, 0, 0, 0, 0];
+      v[1] += r[1]; v[2] += r[2]; v[3] += r[4]; v[4] += r[5];
+      acc.set(i, v);
+    }
+    return { ...a, wk: [...acc.values()] };
+  });
+  return weekly(conv, weeks, dim, topN);
+}
+
 export function weekly(ads, weeks, dim = null, topN = 6) {
   if (!weeks || !weeks.length) return { rows: [], keys: [] };
   let keys = [];
