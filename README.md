@@ -15,7 +15,23 @@ Triple Whale API ──► scripts/fetch_triplewhale.py ─────┘      
   (every 4h, once credentials exist)
 ```
 
-**The dashboard currently runs on the MASTER workbook**, not the API. That
+**The dashboard currently runs on a Meta Ads Manager ad-level export**
+(Oct 20 2026: Jun 20 – Oct 19, 6,753 ads → 4,106 creatives, $6.48M spend):
+
+```bash
+python3 scripts/build_from_meta_csv.py ~/Downloads/Natural-Rems-Account-Ads-<range>.csv \
+    ~/Downloads/Natural_Rems_MASTER_Ad_Names_Spend_NCROAS_552.xlsx
+```
+
+Export settings: Ads tab, filter "Had delivery", columns = Ad name, Ad ID,
+Campaign name, Ad set name, Amount spent, Purchases, Purchases conversion value,
+Impressions, Link clicks (saved column preset "Copy of Performance and clicks").
+Ads renamed to the pipe taxonomy (`Ad No | Product | Angle | Sub-Angle | Concept |
+ICP | Script | Format | Awareness [| Strategist | Editor | Hook]`) are read off the
+name; legacy names fall back to the MASTER workbook, else `(untagged)`. Revenue is
+Meta-attributed, so the UI hides Triple Whale new-customer metrics (`has_nc: false`).
+
+Previously it ran on the MASTER workbook (below). That
 workbook is a reviewed naming artefact: a human classified every creative
 against its video transcript, so the dimensions are read straight off columns
 rather than inferred from ad names.

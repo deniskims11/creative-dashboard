@@ -122,7 +122,7 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
   if (!open) return null;
 
   const downloadCsv = () => {
-    const headers = ["ad_name", "new_ad_name", "creative_no", "product", "angle", "sub_angle", "concept", "icp", "script", "format", "awareness_stage", "naming_status", "buying_type", "campaign", "adset", "spend", "rev", "txns", "nc_rev", "nc_txns", "ncroas", "nccpa", "spend_rank"];
+    const headers = ["ad_name", "new_ad_name", "creative_no", "product", "angle", "sub_angle", "concept", "icp", "script", "format", "awareness_stage", "strategist", "naming_status", "buying_type", "campaign", "adset", "spend", "rev", "txns", "nc_rev", "nc_txns", "ncroas", "nccpa", "spend_rank"];
     const escape = (v) => v == null ? "" : typeof v === "string" && /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : String(v);
     const lines = [headers.join(",")];
     for (const a of sortedAds) {
@@ -229,6 +229,9 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
 }
 
 // --------- Sortable breakdown table (used across Concepts / Agencies / Creators / ICP) ---------
+// Set from the manifest: false when the data has no Triple Whale new-customer metrics.
+let HAS_NC = true;
+
 function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
   const [sort, setSort] = useState({ col: "spend", dir: "desc" });
   const cols = [
@@ -236,12 +239,11 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
     { key: "creatives", label: "Ads" },
     { key: "spend", label: "Spend" },
     { key: "revenue", label: "Revenue" },
-    { key: "roas", label: "Pixel ROAS" },
-    { key: "ncroas", label: "NCROAS" },
-    { key: "pct_new", label: "% New Cust." },
+    { key: "roas", label: HAS_NC ? "Pixel ROAS" : "ROAS" },
+    ...(HAS_NC ? [{ key: "ncroas", label: "NCROAS" }, { key: "pct_new", label: "% New Cust." }] : []),
     { key: "purchases", label: "Orders" },
     { key: "aov", label: "AOV" },
-    { key: "nccpa", label: "NC CPA" },
+    ...(HAS_NC ? [{ key: "nccpa", label: "NC CPA" }] : []),
     { key: "winRate1k", label: "WR $1K" },
     { key: "winRate15k", label: "WR $15K" },
     { key: "winRate50k", label: "WR $50K" },
@@ -264,11 +266,11 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
             <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}</td>
             <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /></td>
-            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} /></td>
-            <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>
+            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} /></td>}
+            {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>}
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>
+            {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>}
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate1k)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate15k)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.winRate50k)}</td>
@@ -629,13 +631,17 @@ export default function Dashboard() {
   };
 
   if (error) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#991b1b" }}>Error loading data: {error}</div>;
-  if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading Triple Whale data…</div>;
+  if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading data…</div>;
+
+  HAS_NC = manifest.has_nc !== false;
+  const fromMaster = (manifest.source || "").startsWith("master-workbook");
 
   const ALL_DIMS_LABELS = {
     angle: "Angle", sub_angle: "Sub-Angle", concept: "Concept", icp: "ICP",
     script: "Script / Hook", format: "Format", awareness_stage: "Awareness Stage",
     product: "Product", creative_no: "Ad Number", buying_type: "Buying Type",
     batch: "Batch", attribution_window: "Attribution Window", geo: "Geo",
+    strategist: "Strategist", editor: "Editor", hook: "Hook", funnel: "Funnel Stage",
     naming_status: "Naming Status", convention: "Review Status",
   };
 
@@ -644,9 +650,11 @@ export default function Dashboard() {
     rev: { label: "Revenue", fmt },
     roas: { label: "ROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
     pixel_roas: { label: "Pixel ROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
-    ncroas: { label: "NCROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
-    nc_rev: { label: "NC Revenue", fmt },
-    pct_new: { label: "% New Cust.", fmt: fmtPct },
+    ...(HAS_NC ? {
+      ncroas: { label: "NCROAS", fmt: v => v == null ? "—" : `${v.toFixed(2)}x` },
+      nc_rev: { label: "NC Revenue", fmt },
+      pct_new: { label: "% New Cust.", fmt: fmtPct },
+    } : {}),
     count: { label: "# Creatives", fmt: fmtNum },
     txns: { label: "Purchases", fmt: fmtNum },
     cpm: { label: "CPM", fmt: v => v == null ? "—" : `$${v.toFixed(2)}` },
@@ -703,10 +711,15 @@ export default function Dashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
               {[
                 { label: "Total Spend", value: fmt(totals.spend), sub: "channel-reported" },
-                { label: "Pixel Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders` },
-                { label: "Pixel ROAS", value: `${totals.roas.toFixed(2)}x`, sub: "pixel rev / spend" },
-                { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}` },
-                { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders` },
+                { label: HAS_NC ? "Pixel Revenue" : "Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders` },
+                { label: HAS_NC ? "Pixel ROAS" : "ROAS", value: `${totals.roas.toFixed(2)}x`, sub: HAS_NC ? "pixel rev / spend" : "Meta-attributed rev / spend" },
+                ...(HAS_NC ? [
+                  { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}` },
+                  { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders` },
+                ] : [
+                  { label: "CPA", value: totals.txns ? `$${(totals.spend / totals.txns).toFixed(0)}` : "—", sub: "spend / purchases" },
+                  { label: "AOV", value: totals.txns ? `$${(totals.rev / totals.txns).toFixed(0)}` : "—", sub: "rev / purchases" },
+                ]),
               ].map((kpi, i) => (
                 <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "16px 14px", border: "1px solid #E8DCD0" }}>
                   <div style={{ fontSize: 10, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{kpi.label}</div>
@@ -724,12 +737,12 @@ export default function Dashboard() {
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#b0978f" }} />
                   <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => fmt(v)} />
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} domain={[0, 1.5]} tickFormatter={v => `${v}x`} />
-                  <Tooltip formatter={(v, n) => (n === "Pixel ROAS" || n === "NCROAS") ? `${v.toFixed(2)}x` : fmtFull(v)} />
+                  <Tooltip formatter={(v, n) => (n === "Pixel ROAS" || n === "ROAS" || n === "NCROAS") ? `${v.toFixed(2)}x` : fmtFull(v)} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar yAxisId="left" dataKey="spend" fill="#93c5fd" name="Spend" radius={[3, 3, 0, 0]} />
                   <Bar yAxisId="left" dataKey="revenue" fill="#86efac" name="Revenue" radius={[3, 3, 0, 0]} />
-                  <Line yAxisId="right" dataKey="roas" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} name="Pixel ROAS" />
-                  <Line yAxisId="right" dataKey="ncroas" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} name="NCROAS" />
+                  <Line yAxisId="right" dataKey="roas" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} name={HAS_NC ? "Pixel ROAS" : "ROAS"} />
+                  {HAS_NC && <Line yAxisId="right" dataKey="ncroas" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} name="NCROAS" />}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -752,6 +765,7 @@ export default function Dashboard() {
 
         {tab === "Win Rate" && (
           <div>
+            {fromMaster && (
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 14px", background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8 }}>
               <span style={{ fontSize: 13, lineHeight: 1.2 }}>⚠</span>
               <div style={{ fontSize: 11, color: "#7f1d1d", lineHeight: 1.5 }}>
@@ -764,7 +778,7 @@ export default function Dashboard() {
                 whole-account launch win rates. A full export including low-spend and
                 static creatives would be needed for that.
               </div>
-            </div>
+            </div>)}
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
               <select value={wrFormat} onChange={e => setWrFormat(e.target.value)}
                 style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
