@@ -17,7 +17,7 @@ const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString();
 const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 
 const MAX_AN_RULES = 8;
-const DEPTH_BG = ["transparent", "#FBF7F4", "#F5EDE5", "#EFE3D8", "#E9DACD"];
+const DEPTH_BG = ["transparent", "#F6FAF3", "#EEF4EA", "#E6EFE1", "#DDE9D6"];
 const depthBg = (d) => DEPTH_BG[Math.min(d, DEPTH_BG.length - 1)];
 const TABS = ["Overview", "Win Rate", "Angles", "Sub-Angles", "Concepts", "ICP", "Formats", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
@@ -33,8 +33,8 @@ const RoasBadge = ({ roas, base = "roas" }) => {
   return <span style={{ background: bg, color, padding: "2px 8px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>{r.toFixed(2)}x</span>;
 };
 
-const th = { padding: "8px 10px", color: "#8a6f68", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.3 };
-const td = { padding: "8px 10px", color: "#3a2429", fontSize: 12 };
+const th = { padding: "8px 10px", color: "#5F7266", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.3 };
+const td = { padding: "8px 10px", color: "#24352C", fontSize: 12 };
 
 // Convert YYMMDD ↔ YYYY-MM-DD for <input type="date"> round-trips.
 const yymmddToIso = (s) => s && /^\d{6}$/.test(s) ? `20${s.slice(0, 2)}-${s.slice(2, 4)}-${s.slice(4, 6)}` : "";
@@ -65,33 +65,33 @@ function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, 
   const maxIso = yymmddToIso(bounds.max);
   const isFiltered = start || end;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "#fff", border: "1px solid #E8DCD0", borderRadius: 8, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "#fff", border: "1px solid #DCE7D6", borderRadius: 8, flexWrap: "wrap" }}>
       {canActivity ? (
         <select value={mode} onChange={e => { setMode(e.target.value); setStart(null); setEnd(null); }}
-          style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 11, fontWeight: 600, color: "#3a2429", textTransform: "uppercase", letterSpacing: 0.3 }}>
+          style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 11, fontWeight: 600, color: "#24352C", textTransform: "uppercase", letterSpacing: 0.3 }}>
           <option value="activity">Date range (spend in period)</option>
           <option value="launch">Launch date (cohort)</option>
         </select>
       ) : (
-        <div style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Launch date</div>
+        <div style={{ fontSize: 11, color: "#5F7266", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Launch date</div>
       )}
       <input type="date" value={yymmddToIso(start) || minIso} min={minIso} max={maxIso}
         onChange={e => setStart(isoToYymmdd(e.target.value))}
-        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }} />
-      <span style={{ color: "#b0978f", fontSize: 12 }}>→</span>
+        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, color: "#24352C" }} />
+      <span style={{ color: "#8FA197", fontSize: 12 }}>→</span>
       <input type="date" value={yymmddToIso(end) || maxIso} min={minIso} max={maxIso}
         onChange={e => setEnd(isoToYymmdd(e.target.value))}
-        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }} />
+        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, color: "#24352C" }} />
       <select value="" onChange={e => { const [a, b] = presetRange(e.target.value, bounds); setStart(a); setEnd(b); }}
-        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }}>
+        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, color: "#24352C" }}>
         <option value="">Quick range…</option>
         {PRESETS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
       </select>
       {mode === "activity" && canActivity && setCompare && (
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "#3a2429" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "#24352C" }}>
           Compare with
           <select value={compare} onChange={e => setCompare(e.target.value)}
-            style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }}>
+            style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, color: "#24352C" }}>
             <option value="none">None</option>
             <option value="prev">Previous period</option>
           </select>
@@ -99,9 +99,9 @@ function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, 
       )}
       {isFiltered && (
         <button onClick={() => { setStart(null); setEnd(null); }}
-          style={{ padding: "4px 10px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Reset</button>
+          style={{ padding: "4px 10px", border: "1px solid #C9D8C2", background: "#fff", color: "#5F7266", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Reset</button>
       )}
-      <span style={{ marginLeft: "auto", fontSize: 10, color: "#b0978f", fontStyle: "italic" }}>
+      <span style={{ marginLeft: "auto", fontSize: 10, color: "#8FA197", fontStyle: "italic" }}>
         {mode === "activity" && canActivity
           ? `ⓘ All figures are what was spent and earned between these dates (data through ${yymmddToIso(bounds.max)})`
           : "ⓘ Shows creatives first launched in this range — their figures are lifetime totals, not period totals"}
@@ -157,7 +157,7 @@ function SortHeader({ label, col, sort, setSort, align = "right" }) {
   return (
     <th
       onClick={onClick}
-      style={{ ...th, textAlign: align, cursor: "pointer", userSelect: "none", color: active ? "#50000B" : "#8a6f68" }}
+      style={{ ...th, textAlign: align, cursor: "pointer", userSelect: "none", color: active ? "#244134" : "#5F7266" }}
       title="Click to sort"
     >
       {label} {arrow}
@@ -233,37 +233,37 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(1100px, 100%)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#50000B" }}>{title}</h3>
-            {subtitle && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#8a6f68" }}>{subtitle}</p>}
-            <p style={{ margin: "4px 0 0", fontSize: 11, color: "#b0978f" }}>{sortedAds.length.toLocaleString()} ads</p>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#244134" }}>{title}</h3>
+            {subtitle && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#5F7266" }}>{subtitle}</p>}
+            <p style={{ margin: "4px 0 0", fontSize: 11, color: "#8FA197" }}>{sortedAds.length.toLocaleString()} ads</p>
             {days?.length > 0 && (
-              <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginTop: 8, width: "fit-content" }}>
+              <div style={{ display: "flex", gap: 3, background: "#DCE7D6", borderRadius: 6, padding: 2, marginTop: 8, width: "fit-content" }}>
                 {[["ads", "Ads"], ["daily", "By day"]].map(([k, l]) => (
                   <button key={k} onClick={() => { setMode(k); setFocus(null); }} style={{ padding: "4px 12px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 600,
-                    background: mode === k && !focus ? "#fff" : "transparent", color: mode === k && !focus ? "#50000B" : "#8a6f68" }}>{l}</button>
+                    background: mode === k && !focus ? "#fff" : "transparent", color: mode === k && !focus ? "#244134" : "#5F7266" }}>{l}</button>
                 ))}
-                {focus && <span style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#50000B", background: "#fff", borderRadius: 5, maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={focus.ad_name}>By day: {focus.ad_name}</span>}
+                {focus && <span style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#244134", background: "#fff", borderRadius: 5, maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={focus.ad_name}>By day: {focus.ad_name}</span>}
               </div>
             )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={downloadCsv} style={{ padding: "6px 12px", border: "1px solid #D8C8BC", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>Download CSV ({sortedAds.length})</button>
-            <button onClick={onClose} style={{ padding: "6px 12px", border: "none", background: "#50000B", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Close</button>
+            <button onClick={downloadCsv} style={{ padding: "6px 12px", border: "1px solid #C9D8C2", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#24352C" }}>Download CSV ({sortedAds.length})</button>
+            <button onClick={onClose} style={{ padding: "6px 12px", border: "none", background: "#244134", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Close</button>
           </div>
         </div>
         <div style={{ overflow: "auto", flex: 1 }}>
           {(mode === "daily" || focus) ? (
             <div>
-              <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 8px" }}>
+              <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 8px" }}>
                 {focus ? "This ad" : `All ${sortedAds.length.toLocaleString()} ads in this list`}, day by day for {range?.[0] || days[0]} → {range?.[1] || days[days.length - 1]} (the calendar range at the top). Newest day first.
-                {focus && <> · <span style={{ color: "#6B0010", cursor: "pointer", fontWeight: 600 }} onClick={() => setFocus(null)}>back to ads</span></>}
+                {focus && <> · <span style={{ color: "#2E7D4F", cursor: "pointer", fontWeight: 600 }} onClick={() => setFocus(null)}>back to ads</span></>}
               </p>
               <DailyView ads={focus ? [focus] : ads} days={days} start={range?.[0]} end={range?.[1]} roasLabel="Pixel ROAS" hasNc={HAS_NC} />
             </div>
           ) : (<>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
             <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
-              <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+              <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
                 <SortHeader label="Ad Name" col="ad_name" sort={sort} setSort={setSort} align="left" />
                 <th style={{ ...th, textAlign: "center" }}>Preview</th>
                 <SortHeader label="Spend" col="spend" sort={sort} setSort={setSort} />
@@ -284,9 +284,9 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                   ? `Preview the creative (no login). Meta ad ID: ${adIds[0] || "?"}`
                   : `Open in Ads Manager (Meta login required). Ad ID: ${adIds[0] || "?"}`;
                 return (
-                  <tr key={i} style={{ borderBottom: "1px solid #F5EDE5" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #EEF4EA" }}>
                     <td style={{ ...td, fontSize: 10, fontFamily: "ui-monospace, monospace", maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={a.ad_name}>
-                      {days?.length > 0 && <button onClick={() => setFocus(a)} title="This ad by day" style={{ border: "1px solid #E8DCD0", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px", marginRight: 6 }}>📈</button>}
+                      {days?.length > 0 && <button onClick={() => setFocus(a)} title="This ad by day" style={{ border: "1px solid #DCE7D6", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px", marginRight: 6 }}>📈</button>}
                       {a.ad_name}</td>
                     <td style={{ ...td, textAlign: "center", width: 72 }}>
                       {a.thumbnail_url && previewUrl ? (
@@ -305,34 +305,34 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                               el.style.display = "none";
                               el.parentElement.textContent = "Manager ↗";
                             }}
-                            style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, border: "1px solid #E8DCD0", display: "block" }} />
+                            style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, border: "1px solid #DCE7D6", display: "block" }} />
                         </a>
                       ) : a.preview_link ? (
                         <a href={a.preview_link} target="_blank" rel="noopener noreferrer"
                           title={previewTitle}
-                          style={{ color: "#6B0010", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
+                          style={{ color: "#2E7D4F", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
                           Preview ↗
                         </a>
                       ) : managerUrl ? (
                         <a href={managerUrl} target="_blank" rel="noopener noreferrer"
                           title={previewTitle}
-                          style={{ color: "#b0978f", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
+                          style={{ color: "#8FA197", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
                           Manager ↗
                         </a>
-                      ) : <span style={{ color: "#D8C8BC", fontSize: 10 }}>—</span>}
+                      ) : <span style={{ color: "#C9D8C2", fontSize: 10 }}>—</span>}
                     </td>
                     <td style={{ ...td, textAlign: "right" }}>{fmt(a.metrics.spend)}</td>
                     <td style={{ ...td, textAlign: "right" }}>{fmt(a.metrics.rev)}</td>
                     <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={a.metrics.roas} /></td>
                     <td style={{ ...td, textAlign: "right" }}>{fmtPct(pctNew)}</td>
-                    <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(a.metrics.clicks)}</td>
-                    <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(a.metrics.txns)}</td>
+                    <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(a.metrics.clicks)}</td>
+                    <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(a.metrics.txns)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {sortedAds.length > 500 && <p style={{ fontSize: 11, color: "#b0978f", marginTop: 12, textAlign: "center" }}>Showing top 500 — CSV export includes all {sortedAds.length.toLocaleString()}.</p>}
+          {sortedAds.length > 500 && <p style={{ fontSize: 11, color: "#8FA197", marginTop: 12, textAlign: "center" }}>Showing top 500 — CSV export includes all {sortedAds.length.toLocaleString()}.</p>}
           </>)}
         </div>
       </div>
@@ -355,7 +355,7 @@ const cmpRow = (dim, name) => {
 };
 function Delta({ cur, prev, inverse = false }) {
   if (!CMP.on || prev == null) return null;
-  if (prev === "new" || !prev || cur == null) return <div style={{ fontSize: 9, color: "#b0978f" }}>new</div>;
+  if (prev === "new" || !prev || cur == null) return <div style={{ fontSize: 9, color: "#8FA197" }}>new</div>;
   const c = ((cur - prev) / Math.abs(prev)) * 100; const good = inverse ? c < 0 : c > 0;
   return <div title={`vs ${CMP.label}`} style={{ fontSize: 9, fontWeight: 700, color: good ? "#15803d" : "#b91c1c" }}>{c >= 0 ? "↗" : "↘"}{Math.abs(c) >= 999 ? "999+" : Math.abs(c).toFixed(0)}%</div>;
 }
@@ -382,17 +382,17 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick, dim }) {
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <thead>
-        <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+        <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
           {cols.map(c => <SortHeader key={c.key} label={c.label} col={c.key} sort={sort} setSort={setSort} align={c.align || "right"} />)}
         </tr>
       </thead>
       <tbody>
         {sorted.map((r, i) => (
-          <tr key={i} onClick={() => onRowClick?.(r)} style={{ borderBottom: "1px solid #F5EDE5", cursor: onRowClick ? "pointer" : "default" }}
-              onMouseEnter={e => onRowClick && (e.currentTarget.style.background = "#FBF7F4")}
+          <tr key={i} onClick={() => onRowClick?.(r)} style={{ borderBottom: "1px solid #EEF4EA", cursor: onRowClick ? "pointer" : "default" }}
+              onMouseEnter={e => onRowClick && (e.currentTarget.style.background = "#F6FAF3")}
               onMouseLeave={e => onRowClick && (e.currentTarget.style.background = "transparent")}>
             <td style={{ ...td, fontWeight: 600 }}>{r.name}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.creatives)}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(r.creatives)}</td>
             {(() => { const p = cmpRow(dim, r.name); r._p = p && (p._none ? "new" : p); return null; })()}
             <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}<Delta cur={r.spend} prev={r._p === "new" ? "new" : r._p?.spend} /></td>
             <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}<Delta cur={r.revenue} prev={r._p === "new" ? "new" : r._p?.revenue} /></td>
@@ -400,9 +400,9 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick, dim }) {
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} base="ncroas" /><Delta cur={r.ncroas} prev={r._p === "new" ? "new" : r._p?.ncroas} /></td>}
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>}
             {HAS_NV && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new_visitors)}</td>}
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
-            {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}<Delta cur={r.nccpa} prev={r._p === "new" ? "new" : r._p?.nccpa} inverse /></td>}
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(r.purchases)}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
+            {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}<Delta cur={r.nccpa} prev={r._p === "new" ? "new" : r._p?.nccpa} inverse /></td>}
             {[r.winRate1k, r.winRate15k, r.winRate50k, ...(HAS_NC ? [r.effRate] : [])].map((v, j) => (
               <td key={j} title={`${r.eligible ?? "?"} launches eligible`} style={{ ...td, textAlign: "right", color: (r.eligible ?? 99) < 5 ? "#cbb8b0" : td.color }}>
                 {(r.eligible ?? 1) === 0 ? "—" : fmtPct(v)}
@@ -437,10 +437,10 @@ function WinRateTable({ wrData }) {
     return { total, rows: sorted };
   }, [wrData, sort]);
   return (
-    <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+    <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+          <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
             <SortHeader label="Month" col="month" sort={sort} setSort={setSort} align="left" />
             <SortHeader label="Launched" col="total" sort={sort} setSort={setSort} />
             {wrCols(wrData).map(t => <SortHeader key={t} label={t === "Efficient" ? "Efficient ($1K + NCROAS ≥ acct)" : t} col={t} sort={sort} setSort={setSort} align="center" />)}
@@ -448,30 +448,30 @@ function WinRateTable({ wrData }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} style={{ borderBottom: "1px solid #F5EDE5" }}>
+            <tr key={i} style={{ borderBottom: "1px solid #EEF4EA" }}>
               <td style={td}>{row.month}</td>
               <td style={{ ...td, textAlign: "right" }}>{row.total.toLocaleString()}</td>
               {wrCols(wrData).map(t => {
                 const d = row.thresholds[t];
                 return (
                   <td key={t} style={{ padding: "6px 6px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#50000B" }}>{d?.n ?? 0}</div>
-                    <div style={{ fontSize: 10, color: (d?.rate ?? 0) >= 10 ? "#16a34a" : (d?.rate ?? 0) < 2 ? "#dc2626" : "#8a6f68" }}>{(d?.rate ?? 0).toFixed(1)}%</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#244134" }}>{d?.n ?? 0}</div>
+                    <div style={{ fontSize: 10, color: (d?.rate ?? 0) >= 10 ? "#16a34a" : (d?.rate ?? 0) < 2 ? "#dc2626" : "#5F7266" }}>{(d?.rate ?? 0).toFixed(1)}%</div>
                   </td>
                 );
               })}
             </tr>
           ))}
           {total && (
-            <tr style={{ borderBottom: "1px solid #F5EDE5", background: "#FBF7F4", fontWeight: 700 }}>
+            <tr style={{ borderBottom: "1px solid #EEF4EA", background: "#F6FAF3", fontWeight: 700 }}>
               <td style={td}>{total.month}</td>
               <td style={{ ...td, textAlign: "right" }}>{total.total.toLocaleString()}</td>
               {wrCols(wrData).map(t => {
                 const d = total.thresholds[t];
                 return (
                   <td key={t} style={{ padding: "6px 6px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#50000B" }}>{d?.n ?? 0}</div>
-                    <div style={{ fontSize: 10, color: (d?.rate ?? 0) >= 10 ? "#16a34a" : (d?.rate ?? 0) < 2 ? "#dc2626" : "#8a6f68" }}>{(d?.rate ?? 0).toFixed(1)}%</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#244134" }}>{d?.n ?? 0}</div>
+                    <div style={{ fontSize: 10, color: (d?.rate ?? 0) >= 10 ? "#16a34a" : (d?.rate ?? 0) < 2 ? "#dc2626" : "#5F7266" }}>{(d?.rate ?? 0).toFixed(1)}%</div>
                   </td>
                 );
               })}
@@ -859,7 +859,7 @@ export default function Dashboard() {
   };
 
   if (error) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#991b1b" }}>Error loading data: {error}</div>;
-  if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#8a6f68" }}>Loading data…</div>;
+  if (!manifest) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#5F7266" }}>Loading data…</div>;
 
   HAS_NC = manifest.has_nc !== false;
   setBaseline(manifest.baseline);
@@ -895,27 +895,40 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", background: "#FAF6F2", minHeight: "100vh", padding: "32px 24px" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ borderBottom: "1px solid #E8DCD0", paddingBottom: 18, marginBottom: 22 }}>
-          <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 32, fontWeight: 500, color: "#1A0205", margin: 0, letterSpacing: -0.5, lineHeight: 1.15 }}>
-            Natural Rems Creative Performance
-          </h1>
-          <p style={{ color: "#8a6f68", fontSize: 12, margin: "6px 0 4px", letterSpacing: 0.2 }}>
-            {manifest.period.start.slice(0, 10)} → {manifest.period.end.slice(0, 10)} · {ads.length.toLocaleString()} creatives · Attribution: {manifest.attribution?.primary ?? '—'}
-          </p>
-          <p style={{ color: "#a89089", fontSize: 11, margin: 0 }}>
-            Last refreshed: {new Date(manifest.generated_at).toLocaleString()} · {Object.keys(mappings).length} dims mapped
-          </p>
-        </div>
-
-        {manifest.scope_note && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 14px", background: "#FEF6E7", border: "1px solid #F0D9A8", borderRadius: 8 }}>
-            <span style={{ fontSize: 13, lineHeight: 1.2 }}>⚠</span>
-            <div style={{ fontSize: 11, color: "#7a5c20", lineHeight: 1.5 }}>
-              <strong>Scope:</strong> {manifest.scope_note}
+    <div style={{ fontFamily: "var(--font-body)", background: "var(--nr-bg)", minHeight: "100vh" }}>
+      <header style={{ background: "var(--nr-green)", color: "var(--nr-cream)", padding: "18px 24px", marginBottom: 24 }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+            <img src={`${import.meta.env.BASE_URL}brand/logo.svg`} alt="Natural Rems" style={{ height: 52, display: "block" }} />
+            <span style={{ width: 1, height: 36, background: "rgba(248,255,245,0.22)" }} />
+            <div>
+              <div style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, letterSpacing: -0.2, lineHeight: 1.1 }}>Creative Performance</div>
+              <div style={{ fontSize: 11, color: "rgba(248,255,245,0.65)", marginTop: 3, letterSpacing: 0.3 }}>Meta · Triple Whale · updated every 4 hours</div>
             </div>
           </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              ["Data", `${manifest.period.start.slice(0, 10)} → ${manifest.period.end.slice(0, 10)}`],
+              ["Creatives", ads.length.toLocaleString()],
+              ["Attribution", "TW Triple · 7-day"],
+              ["Refreshed", new Date(manifest.generated_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })],
+            ].map(([k, v]) => (
+              <div key={k} style={{ background: "rgba(213,232,204,0.10)", border: "1px solid rgba(213,232,204,0.22)", borderRadius: 999, padding: "6px 12px", fontSize: 11 }}>
+                <span style={{ color: "rgba(248,255,245,0.6)", marginRight: 6 }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px 40px" }}>
+
+        {manifest.scope_note && (
+          <details style={{ marginBottom: 16, padding: "10px 14px", background: "#fff", border: "1px solid var(--nr-line)", borderRadius: 10 }}>
+            <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--nr-green)", cursor: "pointer" }}>
+              About this data <span style={{ fontWeight: 400, color: "var(--nr-muted)" }}>· {manifest.attribution?.primary ?? "—"} · act_944402037249956</span>
+            </summary>
+            <div style={{ fontSize: 11, color: "var(--nr-muted)", lineHeight: 1.6, marginTop: 8 }}>{manifest.scope_note}</div>
+          </details>
         )}
 
         <DateRangePicker
@@ -930,15 +943,14 @@ export default function Dashboard() {
           setEnd={setDateEnd}
         />
 
-        <div style={{ display: "flex", gap: 0, marginBottom: 22, borderBottom: "1px solid #E8DCD0", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 22, padding: 5, background: "#fff", border: "1px solid var(--nr-line)", borderRadius: 12, overflowX: "auto" }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
-              padding: "12px 18px", border: "none", borderRadius: 0, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-              letterSpacing: 0.6, textTransform: "uppercase",
-              background: "transparent",
-              color: tab === t ? "#50000B" : "#8a6f68",
-              borderBottom: tab === t ? "2px solid #50000B" : "2px solid transparent",
-              marginBottom: -1, transition: "color 0.15s, border-color 0.15s",
+              padding: "9px 16px", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
+              letterSpacing: 0.2,
+              background: tab === t ? "var(--nr-green)" : "transparent",
+              color: tab === t ? "var(--nr-cream)" : "var(--nr-muted)",
+              transition: "background 0.15s, color 0.15s",
             }}>{t}</button>
           ))}
         </div>
@@ -959,34 +971,34 @@ export default function Dashboard() {
                   { label: "AOV", value: totals.txns ? `$${(totals.rev / totals.txns).toFixed(0)}` : "—", sub: "rev / purchases" },
                 ]),
               ].map((kpi, i) => (
-                <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "16px 14px", border: "1px solid #E8DCD0" }}>
-                  <div style={{ fontSize: 10, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{kpi.label}</div>
+                <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "16px 14px", border: "1px solid #DCE7D6" }}>
+                  <div style={{ fontSize: 10, color: "#8FA197", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{kpi.label}</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: "#50000B" }}>{kpi.value}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#244134" }}>{kpi.value}</div>
                     {cmp && kpi.k && <Delta cur={totals[kpi.k]} prev={cmp.totals[kpi.k]} />}
                   </div>
-                  {cmp && kpi.k && <div style={{ fontSize: 10, color: "#b0978f" }}>vs {kpi.k === "spend" || kpi.k === "rev" ? fmt(cmp.totals[kpi.k]) : kpi.k.includes("roas") ? `${(cmp.totals[kpi.k] ?? 0).toFixed(2)}x` : fmtPct(cmp.totals[kpi.k])} prev. period</div>}
-                  <div style={{ fontSize: 11, color: "#b0978f", marginTop: 2 }}>{kpi.sub}</div>
+                  {cmp && kpi.k && <div style={{ fontSize: 10, color: "#8FA197" }}>vs {kpi.k === "spend" || kpi.k === "rev" ? fmt(cmp.totals[kpi.k]) : kpi.k.includes("roas") ? `${(cmp.totals[kpi.k] ?? 0).toFixed(2)}x` : fmtPct(cmp.totals[kpi.k])} prev. period</div>}
+                  <div style={{ fontSize: 11, color: "#8FA197", marginTop: 2 }}>{kpi.sub}</div>
                 </div>
               ))}
             </div>
 
             {canActivity && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", color: "#3a2429" }}>Daily metrics <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· every creative in view, day by day for the calendar range · tick metrics to plot them</span></h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6", marginBottom: 20 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", color: "#24352C" }}>Daily metrics <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· every creative in view, day by day for the calendar range · tick metrics to plot them</span></h3>
                 <DailyView ads={ads} days={manifest.days} start={isoOf(dateStart)} end={isoOf(dateEnd)} roasLabel="Pixel ROAS" hasNc={HAS_NC} />
               </div>
             )}
 
             {weeklyTotals.rows.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Weekly spend, revenue & ROAS <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· calendar weeks (Mon start); first and last weeks are partial</span></h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6", marginBottom: 20 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#24352C" }}>Weekly spend, revenue & ROAS <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· calendar weeks (Mon start); first and last weeks are partial</span></h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <ComposedChart data={weeklyTotals.rows}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
-                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => fmt(v)} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => `${v.toFixed(1)}x`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EEF4EA" />
+                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#8FA197" }} tickFormatter={v => fmt(v)} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#8FA197" }} tickFormatter={v => `${v.toFixed(1)}x`} />
                     <Tooltip formatter={(v, n) => (n.includes("ROAS")) ? `${(v ?? 0).toFixed(2)}x` : fmtFull(v)} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar yAxisId="left" dataKey="spend" fill="#93c5fd" name="Spend" radius={[3, 3, 0, 0]} />
@@ -999,38 +1011,38 @@ export default function Dashboard() {
             )}
 
             {weeklyMix.rows.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6", marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#3a2429" }}>Weekly spend mix <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· share of each week's spend, top 6 + other</span></h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#24352C" }}>Weekly spend mix <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· share of each week's spend, top 6 + other</span></h3>
                   <select value={wkDim} onChange={e => setWkDim(e.target.value)}
-                    style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                    style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontWeight: 600, color: "#24352C" }}>
                     {["angle", "format", "sub_angle", "awareness_stage", "strategist", "icp"].map(d => <option key={d} value={d}>{ALL_DIMS_LABELS[d] || d}</option>)}
                   </select>
                 </div>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={weeklyMix.rows} stackOffset="expand">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
-                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => `${Math.round(v * 100)}%`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EEF4EA" />
+                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#8FA197" }} tickFormatter={v => `${Math.round(v * 100)}%`} />
                     <Tooltip formatter={(v) => fmtFull(v)} itemSorter={(it) => (it.name === "Other" ? Infinity : -(it.value || 0))} />
                     <Legend wrapperStyle={{ fontSize: 11 }} itemSorter={(it) => weeklyMix.keys.indexOf(it.value)} />
                     {weeklyMix.keys.map((k, i) => (
                       <Bar key={k} dataKey={k} stackId="mix" name={k}
-                        fill={["#50000B", "#b45309", "#0e7490", "#7c3aed", "#15803d", "#be185d", "#cbb8b0"][i % 7]} />
+                        fill={["#244134", "#b45309", "#0e7490", "#7c3aed", "#15803d", "#be185d", "#cbb8b0"][i % 7]} />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
 
-            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Launch cohorts — spend, revenue & ROAS of creatives launched each month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· in-window spend; carry-over creatives excluded</span></h3>
+            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#24352C" }}>Launch cohorts — spend, revenue & ROAS of creatives launched each month <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· in-window spend; carry-over creatives excluded</span></h3>
               <ResponsiveContainer width="100%" height={280}>
                 <ComposedChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => fmt(v)} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} domain={[0, 1.5]} tickFormatter={v => `${v}x`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEF4EA" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#8FA197" }} tickFormatter={v => fmt(v)} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#8FA197" }} domain={[0, 1.5]} tickFormatter={v => `${v}x`} />
                   <Tooltip formatter={(v, n) => (n === "Pixel ROAS" || n === "ROAS" || n === "NCROAS") ? `${v.toFixed(2)}x` : fmtFull(v)} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar yAxisId="left" dataKey="spend" fill="#93c5fd" name="Spend" radius={[3, 3, 0, 0]} />
@@ -1041,13 +1053,13 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#3a2429" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· by first spend day; carry-over creatives excluded</span></h3>
+            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#24352C" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· by first spend day; carry-over creatives excluded</span></h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "#b0978f" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEF4EA" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#8FA197" }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="total" fill="#818cf8" name="Creatives launched" radius={[3, 3, 0, 0]} />
@@ -1085,35 +1097,35 @@ export default function Dashboard() {
             )}
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
               <select value={wrFormat} onChange={e => setWrFormat(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontWeight: 600, color: "#24352C" }}>
                 <option value="blended">All formats</option>
                 {formatList.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
               <select value={wrStrategist} onChange={e => setWrStrategist(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontWeight: 600, color: "#24352C" }}>
                 <option value="all">All strategists</option>
                 {strategistList.map(s => <option key={s} value={s}>{s}</option>)}
                 <option value="(untagged)">(no strategist in name)</option>
               </select>
               <select value={wrThreshold} onChange={e => setWrThreshold(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontWeight: 600, color: "#24352C" }}>
                 {wrCols(wrData).map(t => <option key={t} value={t}>{t === "Efficient" ? "Efficient win ($1K + NCROAS ≥ account)" : `Threshold: ${t}`}</option>)}
               </select>
             </div>
 
-            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>
+            <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #DCE7D6", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>
                 Win Rate Trend — {wrThreshold} ({wrFormat === "blended" ? "All formats" : wrFormat})
               </h3>
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={wrData.filter(d => d.month !== "TOTAL")}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F5EDE5" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#b0978f" }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#b0978f" }} tickFormatter={v => `${v}%`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEF4EA" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#8FA197" }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#8FA197" }} tickFormatter={v => `${v}%`} />
                   <Tooltip formatter={(v, n) => n === "Win Rate" ? `${v.toFixed(1)}%` : v} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar yAxisId="left" dataKey="total" fill="#D8C8BC" name="Total Launched" radius={[3, 3, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="total" fill="#C9D8C2" name="Total Launched" radius={[3, 3, 0, 0]} />
                   <Line yAxisId="right" type="monotone" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4 }} name="Win Rate"
                     dataKey={(d) => d.thresholds[wrThreshold]?.rate || 0} />
                 </ComposedChart>
@@ -1123,12 +1135,12 @@ export default function Dashboard() {
             <WinRateTable wrData={wrData} />
 
             {wrByStrategist.length > 1 && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto", marginTop: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Hit rate by strategist</h3>
-                <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 12px" }}>Share of each strategist's eligible launches reaching each spend level. Strategist comes from the 10th field of renamed ad names, so older launches sit under "(untagged)". $50K+ lags — recent launches are still climbing.</p>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto", marginTop: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#24352C" }}>Hit rate by strategist</h3>
+                <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 12px" }}>Share of each strategist's eligible launches reaching each spend level. Strategist comes from the 10th field of renamed ad names, so older launches sit under "(untagged)". $50K+ lags — recent launches are still climbing.</p>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+                    <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
                       <th style={{ ...th, textAlign: "left" }}>Strategist</th>
                       <th style={{ ...th, textAlign: "right" }}>Launches</th>
                       {wrCols(wrData).map(t => <th key={t} style={{ ...th, textAlign: "center" }}>{t}</th>)}
@@ -1136,7 +1148,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {wrByStrategist.map(x => (
-                      <tr key={x.name} style={{ borderBottom: "1px solid #F5EDE5" }}>
+                      <tr key={x.name} style={{ borderBottom: "1px solid #EEF4EA" }}>
                         <td style={{ ...td, fontWeight: 600 }}>{x.name}</td>
                         <td style={{ ...td, textAlign: "right" }}>{fmtNum(x.total.total)}</td>
                         {wrCols(wrData).map(t => {
@@ -1160,92 +1172,92 @@ export default function Dashboard() {
         {tab === "NVP Buckets" && (
           canActivity ? (
             <NvpLedger ads={manifest.ads} days={manifest.days} baselineNc={BASELINE.ncroas} roasLabel="Pixel ROAS" />
-          ) : <p style={{ color: "#8a6f68" }}>Needs daily data — available after the next refresh.</p>
+          ) : <p style={{ color: "#5F7266" }}>Needs daily data — available after the next refresh.</p>
         )}
 
         {tab === "Angles" && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Angle Performance ({angles.length} angles) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Angle Performance ({angles.length} angles) · <span style={{ fontWeight: 400, color: "#8FA197" }}>click a row to drill into creatives</span></h3>
             <BreakdownTable rows={angles} nameLabel="Angle" dim="angle" onRowClick={r => openModal(`Angle: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
         {tab === "Sub-Angles" && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Sub-Angle Performance ({subAngles.length} sub-angles) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Sub-Angle Performance ({subAngles.length} sub-angles) · <span style={{ fontWeight: 400, color: "#8FA197" }}>click a row to drill into creatives</span></h3>
             <BreakdownTable rows={subAngles} nameLabel="Sub-Angle" dim="sub_angle" onRowClick={r => openModal(`Sub-angle: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
         {tab === "Formats" && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Format Performance ({formats.length} formats) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Format Performance ({formats.length} formats) · <span style={{ fontWeight: 400, color: "#8FA197" }}>click a row to drill into creatives</span></h3>
             <BreakdownTable rows={formats} nameLabel="Format" dim="format" onRowClick={r => openModal(`Format: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "Concepts" && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Concept Performance ({concepts.length} concepts) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Concept Performance ({concepts.length} concepts) · <span style={{ fontWeight: 400, color: "#8FA197" }}>click a row to drill into creatives</span></h3>
             <BreakdownTable rows={concepts} nameLabel="Concept" dim="concept" onRowClick={r => openModal(`Concept: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "ICP" && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>ICP Performance ({icps.length} segments) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>ICP Performance ({icps.length} segments) · <span style={{ fontWeight: 400, color: "#8FA197" }}>click a row to drill into creatives</span></h3>
             <BreakdownTable rows={icps} nameLabel="ICP" dim="icp" onRowClick={r => openModal(`ICP: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "Breakdowns" && (
           <div>
-            <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginBottom: 16, width: "fit-content" }}>
+            <div style={{ display: "flex", gap: 3, background: "#DCE7D6", borderRadius: 6, padding: 2, marginBottom: 16, width: "fit-content" }}>
               {["Funnel (TOF/MOF/BOF)", "Format", "Awareness Stage", "Script", "Strategist", "Launch Status", "Angle × Concept"].map(v => (
                 <button key={v} onClick={() => setBdView(v)} style={{
                   padding: "6px 14px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
-                  background: bdView === v ? "#fff" : "transparent", color: bdView === v ? "#50000B" : "#8a6f68",
+                  background: bdView === v ? "#fff" : "transparent", color: bdView === v ? "#244134" : "#5F7266",
                 }}>{v}</button>
               ))}
             </div>
 
             {bdView === "Awareness Stage" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Awareness Stage ({awareness.length})</h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Performance by Awareness Stage ({awareness.length})</h3>
                 <BreakdownTable rows={awareness} nameLabel="Awareness Stage" dim="awareness_stage" onRowClick={r => openModal(`Awareness: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Script" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Script / Hook ({scripts.length})</h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Performance by Script / Hook ({scripts.length})</h3>
                 <BreakdownTable rows={scripts} nameLabel="Script" dim="script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Funnel (TOF/MOF/BOF)" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Account efficiency by funnel stage</h3>
-                <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 12px" }}>TOF = Unaware / Problem Aware, MOF = Solution Aware, BOF = Product / Most Aware (from the awareness field); NR_ names use their own TOF/MOF/BOF token. For strategist × funnel, use Analysis → Strategist then Funnel Stage.</p>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#24352C" }}>Account efficiency by funnel stage</h3>
+                <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 12px" }}>TOF = Unaware / Problem Aware, MOF = Solution Aware, BOF = Product / Most Aware (from the awareness field); NR_ names use their own TOF/MOF/BOF token. For strategist × funnel, use Analysis → Strategist then Funnel Stage.</p>
                 <BreakdownTable rows={funnels} nameLabel="Funnel" dim="funnel" onRowClick={r => openModal(`Funnel: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Strategist" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Strategist ({strategists.length}) <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· from the 10th field of renamed ad names; older names carry no strategist</span></h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Performance by Strategist ({strategists.length}) <span style={{ fontWeight: 400, fontSize: 11, color: "#8FA197" }}>· from the 10th field of renamed ad names; older names carry no strategist</span></h3>
                 <BreakdownTable rows={strategists} nameLabel="Strategist" dim="strategist" onRowClick={r => openModal(`Strategist: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Launch Status" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Carry-over vs new launches</h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Carry-over vs new launches</h3>
                 <BreakdownTable rows={launchStatuses} nameLabel="Launch Status" dim="launch_status" onRowClick={r => openModal(`Launch status: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Format" && (
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Format ({formats.length} formats)</h3>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>Performance by Format ({formats.length} formats)</h3>
                 <BreakdownTable rows={formats} nameLabel="Format" dim="format" onRowClick={r => openModal(`Format: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
@@ -1254,12 +1266,12 @@ export default function Dashboard() {
               <div>
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
                   <input type="text" placeholder="Search angle or concept..." value={ccSearch} onChange={e => setCcSearch(e.target.value)}
-                    style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, width: 240 }} />
-                  <label style={{ fontSize: 12, color: "#8a6f68" }}>Min spend: <strong style={{ color: "#50000B" }}>{fmt(ccMinSpend)}</strong></label>
+                    style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, width: 240 }} />
+                  <label style={{ fontSize: 12, color: "#5F7266" }}>Min spend: <strong style={{ color: "#244134" }}>{fmt(ccMinSpend)}</strong></label>
                   <input type="range" min={0} max={500000} step={1000} value={ccMinSpend} onChange={e => setCcMinSpend(+e.target.value)} style={{ width: 200 }} />
-                  <span style={{ fontSize: 12, color: "#b0978f" }}>{creatorConceptGroups.length} rows · click to drill in</span>
+                  <span style={{ fontSize: 12, color: "#8FA197" }}>{creatorConceptGroups.length} rows · click to drill in</span>
                 </div>
-                <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto", maxHeight: 600, overflowY: "auto" }}>
+                <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto", maxHeight: 600, overflowY: "auto" }}>
                   <BreakdownTable rows={creatorConceptGroups.map(g => ({
                     name: g.name, creatives: g.count, ads: g.ads, spend: g.spend, revenue: g.rev, roas: g.roas,
                     pct_new: g.pct_new, purchases: g.txns, aov: g.aov, cpm: g.cpm,
@@ -1293,9 +1305,9 @@ export default function Dashboard() {
 
         {tab === "Data Clean Up" && (
           <div>
-            <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", marginBottom: 16 }}>
+            <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12, gap: 12 }}>
-                <p style={{ fontSize: 12, color: "#8a6f68", margin: 0, maxWidth: 720 }}>
+                <p style={{ fontSize: 12, color: "#5F7266", margin: 0, maxWidth: 720 }}>
                   Review unique values parsed from ad names. Click any value to preview 10 sample ads + download full CSV.
                   Use <strong>Edit</strong> to reclassify a value into an existing category or create a new one (e.g. <code>MULTIPLESUPP</code> → <code>MULTISUPP</code>).
                   Save pushes <code>data/mappings.json</code> to GitHub so the next data refresh picks it up.
@@ -1303,14 +1315,14 @@ export default function Dashboard() {
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {saveState.status === "ok" && <span style={{ fontSize: 11, color: "#16a34a", maxWidth: 240 }} title={saveState.msg}>✓ {saveState.msg}</span>}
                   {saveState.status === "err" && <span style={{ fontSize: 11, color: "#dc2626", maxWidth: 240 }} title={saveState.msg}>✕ {saveState.msg}</span>}
-                  {saveState.status === "saving" && <span style={{ fontSize: 11, color: "#8a6f68" }}>Saving…</span>}
+                  {saveState.status === "saving" && <span style={{ fontSize: 11, color: "#5F7266" }}>Saving…</span>}
                   {savedAt && saveState.status === "idle" && <span style={{ fontSize: 11, color: "#16a34a" }}>Saved {savedAt.toLocaleTimeString()}</span>}
                   <button onClick={saveMappings} disabled={saveState.status === "saving"}
-                    style={{ padding: "6px 14px", border: "none", background: saveState.status === "saving" ? "#b0978f" : "#50000B", color: "#fff", borderRadius: 6, cursor: saveState.status === "saving" ? "wait" : "pointer", fontSize: 12, fontWeight: 600 }}>
+                    style={{ padding: "6px 14px", border: "none", background: saveState.status === "saving" ? "#8FA197" : "#244134", color: "#fff", borderRadius: 6, cursor: saveState.status === "saving" ? "wait" : "pointer", fontSize: 12, fontWeight: 600 }}>
                     Save mappings
                   </button>
                   <button onClick={clearGithubPat} title="Clear saved GitHub token"
-                    style={{ padding: "6px 8px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>
+                    style={{ padding: "6px 8px", border: "1px solid #C9D8C2", background: "#fff", color: "#5F7266", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>
                     ⚙
                   </button>
                 </div>
@@ -1320,10 +1332,10 @@ export default function Dashboard() {
                   const mapped = Object.keys(mappings[d] || {}).length;
                   return (
                     <button key={d} onClick={() => { setCleanDim(d); setCleanSelectedValue(null); }} style={{
-                      padding: "4px 10px", border: "1px solid #D8C8BC", borderRadius: 5, cursor: "pointer",
+                      padding: "4px 10px", border: "1px solid #C9D8C2", borderRadius: 5, cursor: "pointer",
                       fontSize: 12, fontWeight: 600,
-                      background: cleanDim === d ? "#50000B" : "#fff",
-                      color: cleanDim === d ? "#fff" : "#8a6f68",
+                      background: cleanDim === d ? "#244134" : "#fff",
+                      color: cleanDim === d ? "#fff" : "#5F7266",
                     }}>{d}{mapped > 0 && <span style={{ marginLeft: 4, fontSize: 10, color: cleanDim === d ? "#86efac" : "#16a34a" }}>· {mapped}</span>}</button>
                   );
                 })}
@@ -1331,8 +1343,8 @@ export default function Dashboard() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: cleanSelectedValue ? "1fr 380px" : "1fr", gap: 16 }}>
-              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>
+              <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#24352C" }}>
                   {cleanDim} — {cleanValuesForDim.length} unique values
                 </h3>
                 <CleanupTable values={cleanValuesForDim} mappings={mappings[cleanDim] || {}} setMapping={(o, n) => setMapping(cleanDim, o, n)} selected={cleanSelectedValue} onSelect={setCleanSelectedValue}
@@ -1340,20 +1352,20 @@ export default function Dashboard() {
               </div>
 
               {cleanSelectedValue && (
-                <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0" }}>
+                <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3a2429" }}>Sample ads: <code>{cleanSelectedValue}</code></h3>
-                    <button onClick={() => setCleanSelectedValue(null)} style={{ border: "none", background: "transparent", color: "#b0978f", cursor: "pointer", fontSize: 14 }}>×</button>
+                    <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#24352C" }}>Sample ads: <code>{cleanSelectedValue}</code></h3>
+                    <button onClick={() => setCleanSelectedValue(null)} style={{ border: "none", background: "transparent", color: "#8FA197", cursor: "pointer", fontSize: 14 }}>×</button>
                   </div>
-                  <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 10px" }}>
+                  <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 10px" }}>
                     {cleanSampleAds.length} ads · showing 10 ·
                     <button onClick={() => openModal(`${cleanDim}=${cleanSelectedValue}`, `${cleanSampleAds.length} ads`, cleanSampleAds)}
-                      style={{ marginLeft: 6, border: "none", background: "transparent", color: "#6B0010", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>see all / download CSV</button>
+                      style={{ marginLeft: 6, border: "none", background: "transparent", color: "#2E7D4F", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>see all / download CSV</button>
                   </p>
-                  <div style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#3a2429", maxHeight: 400, overflowY: "auto" }}>
+                  <div style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#24352C", maxHeight: 400, overflowY: "auto" }}>
                     {cleanSampleAds.slice(0, 10).map((a, i) => (
-                      <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #F5EDE5", wordBreak: "break-all" }}>
-                        <div style={{ fontSize: 10, color: "#b0978f" }}>{fmt(a.metrics.spend)} spend · {fmtNum(a.metrics.txns)} txns</div>
+                      <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #EEF4EA", wordBreak: "break-all" }}>
+                        <div style={{ fontSize: 10, color: "#8FA197" }}>{fmt(a.metrics.spend)} spend · {fmtNum(a.metrics.txns)} txns</div>
                         {a.ad_name}
                       </div>
                     ))}
@@ -1417,7 +1429,7 @@ function CleanupTable({ values, mappings, setMapping, selected, onSelect, onInsp
     <>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+          <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
             <SortHeader label="Value" col="value" sort={sort} setSort={setSort} align="left" />
             <SortHeader label="Ads" col="n" sort={sort} setSort={setSort} />
             <SortHeader label="Total Spend" col="spend" sort={sort} setSort={setSort} />
@@ -1430,9 +1442,9 @@ function CleanupTable({ values, mappings, setMapping, selected, onSelect, onInsp
             const mapped = mappings[v.value];
             return (
               <tr key={v.value} onClick={() => onSelect(v.value)}
-                  style={{ borderBottom: "1px solid #F5EDE5", cursor: "pointer", background: selected === v.value ? "#FDE9BF" : "transparent" }}>
+                  style={{ borderBottom: "1px solid #EEF4EA", cursor: "pointer", background: selected === v.value ? "#E3F0DA" : "transparent" }}>
                 <td style={{ ...td, fontFamily: "ui-monospace, monospace" }}>{v.value}</td>
-                <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(v.n)}</td>
+                <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(v.n)}</td>
                 <td style={{ ...td, textAlign: "right" }}>{fmt(v.spend)}</td>
                 <td style={{ ...td, fontFamily: "ui-monospace, monospace" }} onClick={e => e.stopPropagation()}>
                   {mapped ? (
@@ -1447,11 +1459,11 @@ function CleanupTable({ values, mappings, setMapping, selected, onSelect, onInsp
                       style={{ background: "#e0e7ff", color: "#3730a3", padding: "2px 8px", borderRadius: 4, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "ui-monospace, monospace", fontSize: 11 }}>
                       +{mergedInto[v.value].length} merged ↗
                     </button>
-                  ) : <span style={{ color: "#D8C8BC" }}>—</span>}
+                  ) : <span style={{ color: "#C9D8C2" }}>—</span>}
                 </td>
                 <td style={{ ...td, textAlign: "right" }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setEditingValue(v.value)}
-                    style={{ padding: "3px 10px", border: "1px solid #D8C8BC", background: "#fff", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#3a2429" }}>
+                    style={{ padding: "3px 10px", border: "1px solid #C9D8C2", background: "#fff", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#24352C" }}>
                     Edit
                   </button>
                   {mapped && (
@@ -1488,13 +1500,13 @@ function PatModal({ open, onSave, onSkip, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: "#fff", borderRadius: 10, width: 480, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ padding: "16px 18px", borderBottom: "1px solid #E8DCD0" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#50000B" }}>Sync mappings to GitHub</div>
-          <div style={{ fontSize: 12, color: "#8a6f68", marginTop: 4 }}>Paste a GitHub Personal Access Token to push <code>data/mappings.json</code> to the repo. Stored in this browser only.</div>
+        <div style={{ padding: "16px 18px", borderBottom: "1px solid #DCE7D6" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#244134" }}>Sync mappings to GitHub</div>
+          <div style={{ fontSize: 12, color: "#5F7266", marginTop: 4 }}>Paste a GitHub Personal Access Token to push <code>data/mappings.json</code> to the repo. Stored in this browser only.</div>
         </div>
         <div style={{ padding: "14px 18px" }}>
           <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 11, color: "#6B0010", textDecoration: "none", fontWeight: 600 }}>Create a fine-grained PAT (repo contents: R&W) →</a>
+            style={{ fontSize: 11, color: "#2E7D4F", textDecoration: "none", fontWeight: 600 }}>Create a fine-grained PAT (repo contents: R&W) →</a>
           <input
             type="password"
             autoFocus
@@ -1502,17 +1514,17 @@ function PatModal({ open, onSave, onSkip, onClose }) {
             onChange={e => setPat(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") submit(); }}
             placeholder="github_pat_... or ghp_..."
-            style={{ width: "100%", marginTop: 10, padding: "8px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontFamily: "ui-monospace, monospace" }}
+            style={{ width: "100%", marginTop: 10, padding: "8px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontFamily: "ui-monospace, monospace" }}
           />
-          <div style={{ fontSize: 10, color: "#b0978f", marginTop: 6 }}>Token stays in localStorage. Clear it anytime via the ⚙ button on the Data Clean Up tab.</div>
+          <div style={{ fontSize: 10, color: "#8FA197", marginTop: 6 }}>Token stays in localStorage. Clear it anytime via the ⚙ button on the Data Clean Up tab.</div>
         </div>
-        <div style={{ padding: "12px 18px", borderTop: "1px solid #E8DCD0", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <div style={{ padding: "12px 18px", borderTop: "1px solid #DCE7D6", display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={onSkip}
-            style={{ padding: "6px 12px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            style={{ padding: "6px 12px", border: "1px solid #C9D8C2", background: "#fff", color: "#5F7266", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
             Skip (download JSON)
           </button>
           <button onClick={submit} disabled={!pat.trim()}
-            style={{ padding: "6px 14px", border: "none", background: pat.trim() ? "#50000B" : "#D8C8BC", color: "#fff", borderRadius: 6, cursor: pat.trim() ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600 }}>
+            style={{ padding: "6px 14px", border: "none", background: pat.trim() ? "#244134" : "#C9D8C2", color: "#fff", borderRadius: 6, cursor: pat.trim() ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600 }}>
             Save & push to GitHub
           </button>
         </div>
@@ -1539,20 +1551,20 @@ function CategoryMembersModal({ dim, target, mappings, values, onRemove, onClose
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 2050, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: "#fff", borderRadius: 10, width: 520, maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #E8DCD0" }}>
-          <div style={{ fontSize: 11, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Master category · {dim}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#50000B", fontFamily: "ui-monospace, monospace" }}>{target}</div>
-          <div style={{ fontSize: 11, color: "#8a6f68", marginTop: 2 }}>{members.length} member{members.length !== 1 ? "s" : ""} · {fmtNum(totals.n)} ads · {fmt(totals.spend)}</div>
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid #DCE7D6" }}>
+          <div style={{ fontSize: 11, color: "#8FA197", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Master category · {dim}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#244134", fontFamily: "ui-monospace, monospace" }}>{target}</div>
+          <div style={{ fontSize: 11, color: "#5F7266", marginTop: 2 }}>{members.length} member{members.length !== 1 ? "s" : ""} · {fmtNum(totals.n)} ads · {fmt(totals.spend)}</div>
         </div>
         <div style={{ overflowY: "auto", flex: 1 }}>
           {members.map(m => (
-            <div key={m.raw} style={{ display: "flex", alignItems: "center", padding: "8px 14px", borderBottom: "1px solid #F5EDE5", gap: 10 }}>
+            <div key={m.raw} style={{ display: "flex", alignItems: "center", padding: "8px 14px", borderBottom: "1px solid #EEF4EA", gap: 10 }}>
               <div style={{ flex: 1, fontFamily: "ui-monospace, monospace", fontSize: 12 }}>
                 {m.raw}
-                {m.isSelf && <span style={{ marginLeft: 6, fontSize: 9, color: "#8a6f68", background: "#F5EDE5", padding: "1px 5px", borderRadius: 3 }}>CANONICAL</span>}
+                {m.isSelf && <span style={{ marginLeft: 6, fontSize: 9, color: "#5F7266", background: "#EEF4EA", padding: "1px 5px", borderRadius: 3 }}>CANONICAL</span>}
               </div>
-              <div style={{ fontSize: 11, color: "#8a6f68", minWidth: 60, textAlign: "right" }}>{fmtNum(m.n)}</div>
-              <div style={{ fontSize: 11, color: "#3a2429", minWidth: 70, textAlign: "right", fontWeight: 500 }}>{fmt(m.spend)}</div>
+              <div style={{ fontSize: 11, color: "#5F7266", minWidth: 60, textAlign: "right" }}>{fmtNum(m.n)}</div>
+              <div style={{ fontSize: 11, color: "#24352C", minWidth: 70, textAlign: "right", fontWeight: 500 }}>{fmt(m.spend)}</div>
               {!m.isSelf && (
                 <button onClick={() => onRemove(m.raw)} title="Remove this mapping"
                   style={{ border: "1px solid #fecaca", background: "#fff", color: "#dc2626", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "2px 6px", fontWeight: 600 }}>
@@ -1561,11 +1573,11 @@ function CategoryMembersModal({ dim, target, mappings, values, onRemove, onClose
               )}
             </div>
           ))}
-          {members.length === 0 && <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "#b0978f" }}>No members yet</div>}
+          {members.length === 0 && <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "#8FA197" }}>No members yet</div>}
         </div>
-        <div style={{ padding: "10px 14px", borderTop: "1px solid #E8DCD0", display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid #DCE7D6", display: "flex", justifyContent: "flex-end" }}>
           <button onClick={onClose}
-            style={{ padding: "6px 14px", border: "none", background: "#50000B", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Close</button>
+            style={{ padding: "6px 14px", border: "none", background: "#244134", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Close</button>
         </div>
       </div>
     </div>
@@ -1587,43 +1599,43 @@ function EditCategoryModal({ value, current, categories, onSave, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: "#fff", borderRadius: 10, width: 420, maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #E8DCD0" }}>
-          <div style={{ fontSize: 11, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Reclassify</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#50000B", fontFamily: "ui-monospace, monospace", marginTop: 2, wordBreak: "break-all" }}>{value}</div>
-          {current && <div style={{ fontSize: 11, color: "#8a6f68", marginTop: 4 }}>Currently mapped to <strong style={{ color: "#166534" }}>{current}</strong></div>}
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid #DCE7D6" }}>
+          <div style={{ fontSize: 11, color: "#8FA197", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Reclassify</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#244134", fontFamily: "ui-monospace, monospace", marginTop: 2, wordBreak: "break-all" }}>{value}</div>
+          {current && <div style={{ fontSize: 11, color: "#5F7266", marginTop: 4 }}>Currently mapped to <strong style={{ color: "#166534" }}>{current}</strong></div>}
         </div>
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #E8DCD0" }}>
+        <div style={{ padding: "10px 12px", borderBottom: "1px solid #DCE7D6" }}>
           <input autoFocus placeholder="Search existing categories…" value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12 }} />
+            style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12 }} />
         </div>
         <div style={{ overflowY: "auto", flex: 1, maxHeight: 320 }}>
           {filtered.map(c => (
             <div key={c} onClick={() => onSave(c)}
-              style={{ padding: "8px 14px", fontSize: 12, fontFamily: "ui-monospace, monospace", cursor: "pointer", borderBottom: "1px solid #F5EDE5", background: c === current ? "#FDE9BF" : "transparent", display: "flex", alignItems: "center", gap: 6 }}
-              onMouseEnter={e => e.currentTarget.style.background = "#FBF7F4"}
-              onMouseLeave={e => e.currentTarget.style.background = c === current ? "#FDE9BF" : "transparent"}>
+              style={{ padding: "8px 14px", fontSize: 12, fontFamily: "ui-monospace, monospace", cursor: "pointer", borderBottom: "1px solid #EEF4EA", background: c === current ? "#E3F0DA" : "transparent", display: "flex", alignItems: "center", gap: 6 }}
+              onMouseEnter={e => e.currentTarget.style.background = "#F6FAF3"}
+              onMouseLeave={e => e.currentTarget.style.background = c === current ? "#E3F0DA" : "transparent"}>
               {c === current && <span style={{ color: "#16a34a", fontSize: 11 }}>✓</span>}
               <span>{c}</span>
             </div>
           ))}
-          {filtered.length === 0 && <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "#b0978f" }}>No matches</div>}
+          {filtered.length === 0 && <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "#8FA197" }}>No matches</div>}
         </div>
-        <div style={{ padding: "10px 12px", borderTop: "1px solid #E8DCD0", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "10px 12px", borderTop: "1px solid #DCE7D6", display: "flex", gap: 8, alignItems: "center" }}>
           {creating ? (
             <>
               <input autoFocus placeholder="New category name" value={newName} onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && newName.trim()) onSave(newName.trim()); }}
-                style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, fontFamily: "ui-monospace, monospace" }} />
+                style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, fontFamily: "ui-monospace, monospace" }} />
               <button onClick={() => newName.trim() && onSave(newName.trim())}
-                style={{ padding: "6px 12px", border: "none", background: "#50000B", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Save</button>
+                style={{ padding: "6px 12px", border: "none", background: "#244134", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Save</button>
               <button onClick={() => { setCreating(false); setNewName(""); }}
-                style={{ padding: "6px 10px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>Cancel</button>
+                style={{ padding: "6px 10px", border: "1px solid #C9D8C2", background: "#fff", color: "#5F7266", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>Cancel</button>
             </>
           ) : (
             <>
               <button onClick={() => setCreating(true)}
-                style={{ padding: "6px 12px", border: "1px dashed #b0978f", background: "#fff", color: "#3a2429", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>+ Create new category</button>
-              <span style={{ marginLeft: "auto", fontSize: 11, color: "#b0978f" }}>Click a category to apply</span>
+                style={{ padding: "6px 12px", border: "1px dashed #8FA197", background: "#fff", color: "#24352C", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>+ Create new category</button>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "#8FA197" }}>Click a category to apply</span>
             </>
           )}
         </div>
@@ -1646,27 +1658,27 @@ function ValuePicker({ ads, dim, selected, onToggle, onClear }) {
   return (
     <div style={{ position: "relative", flex: 1, minWidth: 280 }}>
       <div onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", padding: "6px 10px", background: "#fff", border: "1px solid #D8C8BC", borderRadius: 6, cursor: "pointer", minHeight: 32 }}>
+        style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", padding: "6px 10px", background: "#fff", border: "1px solid #C9D8C2", borderRadius: 6, cursor: "pointer", minHeight: 32 }}>
         {selArr.length === 0 ? (
-          <span style={{ color: "#b0978f", fontSize: 12 }}>{dim ? `All ${values.length} values` : "Pick a dimension first"}</span>
+          <span style={{ color: "#8FA197", fontSize: 12 }}>{dim ? `All ${values.length} values` : "Pick a dimension first"}</span>
         ) : (
           <>
             {selArr.slice(0, 4).map(v => (
-              <span key={v} style={{ fontSize: 11, background: "#FDE9BF", color: "#50000B", padding: "2px 6px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span key={v} style={{ fontSize: 11, background: "#E3F0DA", color: "#244134", padding: "2px 6px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 {v}
-                <button onClick={e => { e.stopPropagation(); onToggle(v); }} style={{ border: "none", background: "transparent", color: "#50000B", cursor: "pointer", padding: 0, fontSize: 12 }}>×</button>
+                <button onClick={e => { e.stopPropagation(); onToggle(v); }} style={{ border: "none", background: "transparent", color: "#244134", cursor: "pointer", padding: 0, fontSize: 12 }}>×</button>
               </span>
             ))}
-            {selArr.length > 4 && <span style={{ fontSize: 11, color: "#8a6f68" }}>+{selArr.length - 4} more</span>}
+            {selArr.length > 4 && <span style={{ fontSize: 11, color: "#5F7266" }}>+{selArr.length - 4} more</span>}
           </>
         )}
-        <span style={{ marginLeft: "auto", color: "#b0978f", fontSize: 11 }}>▾</span>
+        <span style={{ marginLeft: "auto", color: "#8FA197", fontSize: 11 }}>▾</span>
       </div>
       {open && dim && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #D8C8BC", borderRadius: 6, boxShadow: "0 6px 16px rgba(0,0,0,0.1)", zIndex: 20, maxHeight: 360, display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: 8, borderBottom: "1px solid #E8DCD0", background: "#fff", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #C9D8C2", borderRadius: 6, boxShadow: "0 6px 16px rgba(0,0,0,0.1)", zIndex: 20, maxHeight: 360, display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: 8, borderBottom: "1px solid #DCE7D6", background: "#fff", display: "flex", gap: 8, alignItems: "center" }}>
             <input autoFocus placeholder="Search values…" value={search} onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1, padding: "4px 8px", borderRadius: 4, border: "1px solid #E8DCD0", fontSize: 11 }} />
+              style={{ flex: 1, padding: "4px 8px", borderRadius: 4, border: "1px solid #DCE7D6", fontSize: 11 }} />
             {selArr.length > 0 && <button onClick={onClear} style={{ border: "none", background: "transparent", color: "#dc2626", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Clear</button>}
           </div>
           <div style={{ overflowY: "auto", flex: 1 }}>
@@ -1674,14 +1686,14 @@ function ValuePicker({ ads, dim, selected, onToggle, onClear }) {
               <label key={v.value} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>
                 <input type="checkbox" checked={selected.has(v.value)} onChange={() => onToggle(v.value)} />
                 <span style={{ fontFamily: "ui-monospace, monospace", flex: 1 }}>{v.value}</span>
-                <span style={{ color: "#b0978f" }}>{v.n}</span>
+                <span style={{ color: "#8FA197" }}>{v.n}</span>
               </label>
             ))}
-            {filtered.length > 200 && <div style={{ padding: 8, fontSize: 10, color: "#b0978f", textAlign: "center" }}>Showing 200 of {filtered.length} — refine search.</div>}
+            {filtered.length > 200 && <div style={{ padding: 8, fontSize: 10, color: "#8FA197", textAlign: "center" }}>Showing 200 of {filtered.length} — refine search.</div>}
           </div>
-          <div style={{ padding: 8, borderTop: "1px solid #E8DCD0", background: "#fff", display: "flex", justifyContent: "flex-end", gap: 6 }}>
+          <div style={{ padding: 8, borderTop: "1px solid #DCE7D6", background: "#fff", display: "flex", justifyContent: "flex-end", gap: 6 }}>
             <button onClick={() => setOpen(false)}
-              style={{ padding: "6px 16px", border: "none", background: "#50000B", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+              style={{ padding: "6px 16px", border: "none", background: "#244134", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
               Select{selArr.length > 0 ? ` (${selArr.length})` : ""}
             </button>
           </div>
@@ -1706,7 +1718,7 @@ function TreeTable({ nodes, dimLabels, onLeafClick, onDaily, tendency, prevMap, 
     const active = sortCol === col;
     return (
       <th key={col} onClick={() => { if (active) setSortDir(d => d === "desc" ? "asc" : "desc"); else { setSortCol(col); setSortDir("desc"); } }}
-        style={{ ...th, textAlign: align, cursor: "pointer", userSelect: "none", color: active ? "#50000B" : "#8a6f68" }}>
+        style={{ ...th, textAlign: align, cursor: "pointer", userSelect: "none", color: active ? "#244134" : "#5F7266" }}>
         {label} {active && (sortDir === "desc" ? "↓" : "↑")}
       </th>
     );
@@ -1740,7 +1752,7 @@ function TreeTable({ nodes, dimLabels, onLeafClick, onDaily, tendency, prevMap, 
   const delta = (path, key, cur, inverse = false) => {
     if (!tendency || !prevMap) return null;
     const p = prevMap.get(path)?.[key];
-    if (p == null || !p || cur == null) return <span style={{ fontSize: 9, color: "#b0978f", marginLeft: 4 }}>new</span>;
+    if (p == null || !p || cur == null) return <span style={{ fontSize: 9, color: "#8FA197", marginLeft: 4 }}>new</span>;
     const ch = (cur - p) / Math.abs(p) * 100;
     const good = inverse ? ch < 0 : ch > 0;
     return <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 4, padding: "0 3px", borderRadius: 3,
@@ -1749,26 +1761,26 @@ function TreeTable({ nodes, dimLabels, onLeafClick, onDaily, tendency, prevMap, 
   const dayRow = (r) => {
     const d = r.day;
     return (
-      <tr key={r.path} style={{ borderBottom: "1px solid #F5EDE5", background: "#FFFDF9" }}>
-        <td style={{ ...td, paddingLeft: 10 + r.depth * 20, color: "#5a4046" }}>
-          <span style={{ display: "inline-block", width: 14, color: "#b0978f" }}>🗓</span>{d.date}
+      <tr key={r.path} style={{ borderBottom: "1px solid #EEF4EA", background: "#FBFDF9" }}>
+        <td style={{ ...td, paddingLeft: 10 + r.depth * 20, color: "#3E5246" }}>
+          <span style={{ display: "inline-block", width: 14, color: "#8FA197" }}>🗓</span>{d.date}
         </td>
-        <td style={{ ...td, textAlign: "right", color: "#b0978f" }}>—</td>
+        <td style={{ ...td, textAlign: "right", color: "#8FA197" }}>—</td>
         <td style={{ ...td, textAlign: "right" }}>{fmt(d.spend)}</td>
         <td style={{ ...td, textAlign: "right" }}>{fmt(d.rev)}</td>
         <td style={{ ...td, textAlign: "right" }}>{d.roas == null ? "—" : `${d.roas.toFixed(2)}x`}</td>
         {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{d.ncroas == null ? "—" : `${d.ncroas.toFixed(2)}x`}</td>}
-        <td style={{ ...td, textAlign: "right", color: "#b0978f" }}>—</td>
-        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(d.orders)}</td>
-        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{d.aov ? `$${d.aov.toFixed(0)}` : "—"}</td>
-        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{d.cpm ? `$${d.cpm.toFixed(1)}` : "—"}</td>
+        <td style={{ ...td, textAlign: "right", color: "#8FA197" }}>—</td>
+        <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(d.orders)}</td>
+        <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{d.aov ? `$${d.aov.toFixed(0)}` : "—"}</td>
+        <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{d.cpm ? `$${d.cpm.toFixed(1)}` : "—"}</td>
       </tr>
     );
   };
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <thead>
-        <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+        <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
           {sortHeader(dimLabels.join(" / "), "value", "left")}
           {sortHeader("Ads", "count")}
           {sortHeader("Spend", "spend")}
@@ -1785,25 +1797,25 @@ function TreeTable({ nodes, dimLabels, onLeafClick, onDaily, tendency, prevMap, 
         {rows.map(r => r.day ? dayRow(r) : (
           <tr key={r.path}
             onClick={() => (r.isLeaf && !timeline) ? onLeafClick(r.n, r.path) : toggle(r.path)}
-            style={{ borderBottom: "1px solid #F5EDE5", cursor: "pointer", background: depthBg(r.depth) }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#FDE9BF")}
+            style={{ borderBottom: "1px solid #EEF4EA", cursor: "pointer", background: depthBg(r.depth) }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#E3F0DA")}
             onMouseLeave={e => (e.currentTarget.style.background = depthBg(r.depth))}>
             <td style={{ ...td, paddingLeft: 10 + r.depth * 20, fontWeight: r.depth === 0 ? 600 : 500 }}>
-              <span style={{ display: "inline-block", width: 14, color: "#b0978f" }}>{(!r.isLeaf || timeline) ? (r.isOpen ? "▼" : "▶") : "•"}</span>
+              <span style={{ display: "inline-block", width: 14, color: "#8FA197" }}>{(!r.isLeaf || timeline) ? (r.isOpen ? "▼" : "▶") : "•"}</span>
               {r.n.value}
-              <span style={{ fontSize: 10, color: "#b0978f", marginLeft: 6 }}>({r.n.agg.count})</span>
+              <span style={{ fontSize: 10, color: "#8FA197", marginLeft: 6 }}>({r.n.agg.count})</span>
               {onDaily && <button onClick={e => { e.stopPropagation(); onDaily(r.n, r.path); }} title="By day"
-                style={{ marginLeft: 8, border: "1px solid #E8DCD0", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px" }}>📈</button>}
+                style={{ marginLeft: 8, border: "1px solid #DCE7D6", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px" }}>📈</button>}
             </td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.n.agg.count)}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(r.n.agg.count)}</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.n.agg.spend)}{delta(r.path, "spend", r.n.agg.spend)}</td>
             <td style={{ ...td, textAlign: "right" }}>{fmt(r.n.agg.rev)}{delta(r.path, "rev", r.n.agg.rev)}</td>
             <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.n.agg.roas} />{delta(r.path, "roas", r.n.agg.roas)}</td>
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.n.agg.ncroas} base="ncroas" />{delta(r.path, "ncroas", r.n.agg.ncroas)}</td>}
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.n.agg.pct_new)}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.n.agg.txns)}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.n.agg.aov ? `$${r.n.agg.aov.toFixed(0)}` : "—"}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.n.agg.cpm ? `$${r.n.agg.cpm.toFixed(1)}` : "—"}{delta(r.path, "cpm", r.n.agg.cpm, true)}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{fmtNum(r.n.agg.txns)}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{r.n.agg.aov ? `$${r.n.agg.aov.toFixed(0)}` : "—"}</td>
+            <td style={{ ...td, textAlign: "right", color: "#5F7266" }}>{r.n.agg.cpm ? `$${r.n.agg.cpm.toFixed(1)}` : "—"}{delta(r.path, "cpm", r.n.agg.cpm, true)}</td>
           </tr>
         ))}
       </tbody>
@@ -1829,14 +1841,14 @@ function ViewBar({ viewOf, applyView, encodeView }) {
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 2500); };
   const persist = (list) => { setSaved(list); try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch {} };
   const shareLink = () => `${location.origin}${location.pathname}#view=${encodeView(viewOf())}`;
-  const btn = { padding: "5px 10px", border: "1px solid #E8DCD0", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#50000B" };
+  const btn = { padding: "5px 10px", border: "1px solid #DCE7D6", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#244134" };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #F5EDE5" }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#8a6f68" }}>VIEWS</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #EEF4EA" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "#5F7266" }}>VIEWS</span>
       <select value="" onChange={e => {
         const [kind, i] = e.target.value.split(":");
         if (kind === "b") applyView(BUILTIN_VIEWS[+i].v); else if (kind === "s") applyView(saved[+i].v);
-      }} style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #E8DCD0", fontSize: 12, minWidth: 220 }}>
+      }} style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #DCE7D6", fontSize: 12, minWidth: 220 }}>
         <option value="">Open a view…</option>
         <optgroup label="Starting points">{BUILTIN_VIEWS.map((b, i) => <option key={b.name} value={`b:${i}`}>{b.name}</option>)}</optgroup>
         {saved.length > 0 && <optgroup label="Saved in this browser">{saved.map((b, i) => <option key={b.name + i} value={`s:${i}`}>{b.name}</option>)}</optgroup>}
@@ -1850,7 +1862,7 @@ function ViewBar({ viewOf, applyView, encodeView }) {
         const name = window.prompt(`Delete which saved view?\n${saved.map(x => x.name).join("\n")}`);
         if (!name) return; persist(saved.filter(x => x.name !== name)); flash(`Deleted "${name}"`);
       }}>Delete…</button>}
-      <button style={{ ...btn, background: "#6B0010", color: "#fff", borderColor: "#6B0010" }} onClick={async () => {
+      <button style={{ ...btn, background: "#2E7D4F", color: "#fff", borderColor: "#2E7D4F" }} onClick={async () => {
         const url = shareLink();
         try { await navigator.clipboard.writeText(url); flash("Link copied — anyone opening it sees this exact setup"); }
         catch { window.prompt("Copy this link:", url); }
@@ -1906,24 +1918,24 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
 
   return (
     <div>
-      <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", marginBottom: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", marginBottom: 16 }}>
         <ViewBar viewOf={viewOf} applyView={applyView} encodeView={encodeView} />
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: "#3a2429", margin: "0 0 10px" }}>Concept Analysis</h3>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: "#24352C", margin: "0 0 10px" }}>Concept Analysis</h3>
 
         {/* Rule rows */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {anRules.map((rule, i) => (
             <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ width: 20, color: "#b0978f", fontSize: 12, textAlign: "center" }}>{i + 1}</span>
+              <span style={{ width: 20, color: "#8FA197", fontSize: 12, textAlign: "center" }}>{i + 1}</span>
               <select value={rule.dim} onChange={e => setRuleDim(i, e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, minWidth: 160, background: "#fff" }}>
+                style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12, minWidth: 160, background: "#fff" }}>
                 <option value="">Pick dimension…</option>
                 {Object.entries(ALL_DIMS_LABELS).map(([k, lbl]) => {
                   const disabled = usedDims.has(k) && k !== rule.dim;
                   return <option key={k} value={k} disabled={disabled}>{lbl}{disabled ? " (used)" : ""}</option>;
                 })}
               </select>
-              <span style={{ color: "#b0978f" }}>›</span>
+              <span style={{ color: "#8FA197" }}>›</span>
               <ValuePicker
                 ads={ads}
                 dim={rule.dim}
@@ -1932,26 +1944,26 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
                 onClear={() => clearRuleValues(i)}
               />
               <button onClick={() => removeRule(i)} title="Remove row"
-                style={{ border: "none", background: "transparent", color: "#b0978f", cursor: "pointer", fontSize: 16, padding: 4 }}>🗑</button>
+                style={{ border: "none", background: "transparent", color: "#8FA197", cursor: "pointer", fontSize: 16, padding: 4 }}>🗑</button>
             </div>
           ))}
         </div>
 
         {anRules.length < MAX_AN_RULES && (
-          <button onClick={addRule} style={{ marginTop: 10, padding: "6px 12px", border: "1px dashed #D8C8BC", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#6B0010" }}>+ Add dimension</button>
+          <button onClick={addRule} style={{ marginTop: 10, padding: "6px 12px", border: "1px dashed #C9D8C2", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#2E7D4F" }}>+ Add dimension</button>
         )}
 
         {/* Controls row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, alignItems: "end", marginTop: 12, paddingTop: 12, borderTop: "1px solid #E8DCD0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, alignItems: "end", marginTop: 12, paddingTop: 12, borderTop: "1px solid #DCE7D6" }}>
           <div>
-            <label style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, display: "block", marginBottom: 4 }}>CHART METRIC</label>
-            <select value={anMetric} onChange={e => setAnMetric(e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12 }}>
+            <label style={{ fontSize: 11, color: "#5F7266", fontWeight: 600, display: "block", marginBottom: 4 }}>CHART METRIC</label>
+            <select value={anMetric} onChange={e => setAnMetric(e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12 }}>
               {Object.entries(METRIC_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, display: "block", marginBottom: 4 }}>MIN SPEND</label>
-            <select value={anMinSpend} onChange={e => setAnMinSpend(+e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12 }}>
+            <label style={{ fontSize: 11, color: "#5F7266", fontWeight: 600, display: "block", marginBottom: 4 }}>MIN SPEND</label>
+            <select value={anMinSpend} onChange={e => setAnMinSpend(+e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12 }}>
               <option value={0}>None</option>
               <option value={1000}>$1K+</option>
               <option value={10000}>$10K+</option>
@@ -1960,31 +1972,31 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, display: "block", marginBottom: 4 }}>TOP N (top level)</label>
-            <select value={anTopN} onChange={e => setAnTopN(+e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12 }}>
+            <label style={{ fontSize: 11, color: "#5F7266", fontWeight: 600, display: "block", marginBottom: 4 }}>TOP N (top level)</label>
+            <select value={anTopN} onChange={e => setAnTopN(+e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #C9D8C2", fontSize: 12 }}>
               <option value={10}>Top 10</option>
               <option value={20}>Top 20</option>
               <option value={50}>Top 50</option>
               <option value={200}>Top 200</option>
             </select>
           </div>
-          <div style={{ fontSize: 11, color: "#8a6f68" }}>
-            <strong style={{ color: "#50000B" }}>{analysisTree.length}</strong> top-level groups
+          <div style={{ fontSize: 11, color: "#5F7266" }}>
+            <strong style={{ color: "#244134" }}>{analysisTree.length}</strong> top-level groups
           </div>
         </div>
 
         {/* Exclude values section (kept as secondary tool) */}
-        <div style={{ marginTop: 12, borderTop: "1px solid #E8DCD0", paddingTop: 12 }}>
-          <label style={{ fontSize: 11, color: "#8a6f68", fontWeight: 600, display: "block", marginBottom: 6 }}>EXCLUDE VALUES (secondary filter)</label>
+        <div style={{ marginTop: 12, borderTop: "1px solid #DCE7D6", paddingTop: 12 }}>
+          <label style={{ fontSize: 11, color: "#5F7266", fontWeight: 600, display: "block", marginBottom: 6 }}>EXCLUDE VALUES (secondary filter)</label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {Object.keys(ALL_DIMS_LABELS).map(k => {
               const excluded = anExclusions[k]?.size || 0;
               return (
                 <button key={k} onClick={() => setExpandedExcludeDim(expandedExcludeDim === k ? null : k)} style={{
-                  padding: "4px 10px", border: "1px solid #D8C8BC", borderRadius: 5, cursor: "pointer",
+                  padding: "4px 10px", border: "1px solid #C9D8C2", borderRadius: 5, cursor: "pointer",
                   fontSize: 11, fontWeight: 600,
                   background: expandedExcludeDim === k ? "#fef3c7" : "#fff",
-                  color: excluded > 0 ? "#c2410c" : "#8a6f68",
+                  color: excluded > 0 ? "#c2410c" : "#5F7266",
                 }}>{ALL_DIMS_LABELS[k]}{excluded > 0 && ` (−${excluded})`}</button>
               );
             })}
@@ -1996,13 +2008,13 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
             const excludedCount = anExclusions[expandedExcludeDim]?.size || 0;
             const allSelected = excludedCount >= allExcludeValues.length && allExcludeValues.length > 0;
             return (
-              <div style={{ marginTop: 10, padding: 10, background: "#FBF7F4", borderRadius: 6, maxHeight: 280, overflowY: "auto" }}>
+              <div style={{ marginTop: 10, padding: 10, background: "#F6FAF3", borderRadius: 6, maxHeight: 280, overflowY: "auto" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 11, color: "#8a6f68" }}>Check values to exclude from <strong>{ALL_DIMS_LABELS[expandedExcludeDim]}</strong>:</div>
+                  <div style={{ fontSize: 11, color: "#5F7266" }}>Check values to exclude from <strong>{ALL_DIMS_LABELS[expandedExcludeDim]}</strong>:</div>
                   <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                     <button
                       onClick={() => allSelected ? clearExcludeForDim(expandedExcludeDim) : setExcludeAll(expandedExcludeDim, allExcludeValues)}
-                      style={{ padding: "3px 10px", border: "1px solid #D8C8BC", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, color: "#3a2429" }}>
+                      style={{ padding: "3px 10px", border: "1px solid #C9D8C2", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, color: "#24352C" }}>
                       {allSelected ? "Deselect all" : `Select all (${allExcludeValues.length})`}
                     </button>
                     {excludedCount > 0 && !allSelected && (
@@ -2018,12 +2030,12 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
                     <label key={v.value} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer" }}>
                       <input type="checkbox" checked={anExclusions[expandedExcludeDim]?.has(v.value) || false} onChange={() => toggleExclude(expandedExcludeDim, v.value)} />
                       <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10 }}>{v.value}</span>
-                      <span style={{ color: "#b0978f", fontSize: 10 }}>({v.n})</span>
+                      <span style={{ color: "#8FA197", fontSize: 10 }}>({v.n})</span>
                     </label>
                   ))}
                 </div>
                 {allExcludeValues.length > excludeDimValues.length && (
-                  <div style={{ marginTop: 8, fontSize: 10, color: "#b0978f", textAlign: "center" }}>
+                  <div style={{ marginTop: 8, fontSize: 10, color: "#8FA197", textAlign: "center" }}>
                     Showing {excludeDimValues.length} of {allExcludeValues.length} values — "Select all" applies to every value.
                   </div>
                 )}
@@ -2037,22 +2049,22 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
         <>
           <SpendMix tree={analysisTree} dims={activeDims} labels={ALL_DIMS_LABELS} baselineNc={BASELINE.ncroas}
             onAds={(name, rows) => openModal(name, `${rows.length} creatives`, rows)} />
-          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", overflowX: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3a2429" }}>Breakdown</h3>
+              <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#24352C" }}>Breakdown</h3>
               {[["Tendency", tendency, setTendency, prevInfo ? `vs previous period ${prevInfo.label}${prevInfo.empty ? " (no data)" : ""}` : "pick a date range (spend in period) to compare"],
                 ["Timeline view", timeline, setTimeline, "expand any row to see it day by day"]].map(([label, on, set, hint]) => (
-                <label key={label} title={hint} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#3a2429", cursor: "pointer" }}>
-                  <span onClick={() => set(!on)} style={{ width: 30, height: 16, borderRadius: 8, background: on ? "#CC6138" : "#D8C8BC", position: "relative", transition: "background .15s" }}>
+                <label key={label} title={hint} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#24352C", cursor: "pointer" }}>
+                  <span onClick={() => set(!on)} style={{ width: 30, height: 16, borderRadius: 8, background: on ? "#2E7D4F" : "#C9D8C2", position: "relative", transition: "background .15s" }}>
                     <span style={{ position: "absolute", top: 2, left: on ? 16 : 2, width: 12, height: 12, borderRadius: 6, background: "#fff", transition: "left .15s" }} />
                   </span>
                   <span onClick={() => set(!on)}>{label}</span>
                 </label>
               ))}
-              {tendency && prevInfo && <span style={{ fontSize: 11, color: "#b0978f" }}>change vs {prevInfo.label}</span>}
+              {tendency && prevInfo && <span style={{ fontSize: 11, color: "#8FA197" }}>change vs {prevInfo.label}</span>}
               {tendency && !prevInfo && <span style={{ fontSize: 11, color: "#b91c1c" }}>pick a date range at the top to compare periods</span>}
             </div>
-            <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 10px" }}>Click a row to expand to the next dimension. Click a leaf row to see ad-level data.</p>
+            <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 10px" }}>Click a row to expand to the next dimension. Click a leaf row to see ad-level data.</p>
             <TreeTable
               nodes={analysisTree}
               dimLabels={activeDims.map(d => ALL_DIMS_LABELS[d])}

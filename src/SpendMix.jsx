@@ -10,7 +10,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 //  • Focus: click a bar (or a slice) to see that group's split as a donut +
 //    ranked table; keep clicking slices to walk down the stacked dimensions.
 
-const PALETTE = ["#6B0010", "#D97706", "#0284C7", "#16A34A", "#9333EA", "#DB2777", "#0D9488",
+const PALETTE = ["#2E7D4F", "#D97706", "#0284C7", "#16A34A", "#9333EA", "#DB2777", "#0D9488",
   "#CA8A04", "#4F46E5", "#EA580C", "#65A30D", "#475569"];
 const OTHER = "#CBBFB6";
 const UNTAGGED = "#8F8A86";
@@ -72,14 +72,14 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
   const donutSegs = donutNode && donutNode.children ? segments(donutNode) : [];
   const childDim = fnode ? dims[level] : dims[0];
 
-  const card = { background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", marginBottom: 16 };
-  const ncColor = v => (v == null ? "#b0978f" : v >= baselineNc ? "#15803d" : "#b91c1c");
+  const card = { background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #DCE7D6", marginBottom: 16 };
+  const ncColor = v => (v == null ? "#8FA197" : v >= baselineNc ? "#15803d" : "#b91c1c");
 
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3a2429" }}>Spend mix</h3>
-        <span style={{ fontSize: 11, color: "#b0978f" }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#24352C" }}>Spend mix</h3>
+        <span style={{ fontSize: 11, color: "#8FA197" }}>
           {twoLevel
             ? `How each ${labels[dims[0]] || dims[0]}'s spend splits across ${labels[dims[1]] || dims[1]} · click a bar to focus`
             : `Share of spend by ${labels[dims[0]] || dims[0]} · add a second dimension to see each one's split`}
@@ -93,9 +93,9 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
             const on = focus[0] === String(n.value);
             return (
               <div key={String(n.value)} onClick={() => setFocus(on ? [] : [String(n.value)])}
-                style={{ display: "grid", gridTemplateColumns: "minmax(120px, 220px) 1fr 70px", alignItems: "center", gap: 10, padding: "4px 6px", borderRadius: 6, cursor: "pointer", background: on ? "#FDF3E7" : "transparent" }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#3a2429", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={String(n.value)}>{String(n.value)}</div>
-                <div style={{ display: "flex", height: 22, borderRadius: 4, overflow: "hidden", background: "#F5EDE5" }}>
+                style={{ display: "grid", gridTemplateColumns: "minmax(120px, 220px) 1fr 70px", alignItems: "center", gap: 10, padding: "4px 6px", borderRadius: 6, cursor: "pointer", background: on ? "#EAF3E4" : "transparent" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#24352C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={String(n.value)}>{String(n.value)}</div>
+                <div style={{ display: "flex", height: 22, borderRadius: 4, overflow: "hidden", background: "#EEF4EA" }}>
                   {segs.map(s => (
                     <div key={s.name} title={`${s.name}: ${money(s.spend)} (${pct(s.share)}) · NCROAS ${x2(s.node.agg.ncroas)}`}
                       style={{ width: `${s.share}%`, background: colorOf(s.name), color: "#fff", fontSize: 10, lineHeight: "22px", paddingLeft: 4, overflow: "hidden", whiteSpace: "nowrap", borderRight: "1px solid #fff" }}>
@@ -103,13 +103,13 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 12, textAlign: "right", color: "#8a6f68" }}>{money(n.agg.spend)}</div>
+                <div style={{ fontSize: 12, textAlign: "right", color: "#5F7266" }}>{money(n.agg.spend)}</div>
               </div>
             );
           })}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 10 }}>
             {[...new Set(tree.flatMap(n => segments(n).map(s => s.name)))].slice(0, 16).map(name => (
-              <span key={name} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#5a4046" }}>
+              <span key={name} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#3E5246" }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: colorOf(name) }} />{name}
               </span>
             ))}
@@ -118,12 +118,12 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
       )}
 
       {donutNode && donutSegs.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 12, borderTop: twoLevel ? "1px solid #E8DCD0" : "none" }}>
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: twoLevel ? "1px solid #DCE7D6" : "none" }}>
           {fnode && (
-            <div style={{ fontSize: 12, marginBottom: 8, color: "#8a6f68" }}>
-              <span style={{ cursor: "pointer", color: "#6B0010", fontWeight: 600 }} onClick={() => setFocus([])}>All</span>
+            <div style={{ fontSize: 12, marginBottom: 8, color: "#5F7266" }}>
+              <span style={{ cursor: "pointer", color: "#2E7D4F", fontWeight: 600 }} onClick={() => setFocus([])}>All</span>
               {focus.map((v, i) => (
-                <span key={i}> › <span style={{ cursor: "pointer", color: i === focus.length - 1 ? "#3a2429" : "#6B0010", fontWeight: 600 }}
+                <span key={i}> › <span style={{ cursor: "pointer", color: i === focus.length - 1 ? "#24352C" : "#2E7D4F", fontWeight: 600 }}
                   onClick={() => setFocus(focus.slice(0, i + 1))}>{v}</span></span>
               ))}
               <span> · split by <b>{labels[childDim] || childDim}</b> · {money(donutNode.agg.spend)}</span>
@@ -143,7 +143,7 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid #E8DCD0", color: "#8a6f68", fontSize: 10, textTransform: "uppercase" }}>
+                <tr style={{ borderBottom: "2px solid #DCE7D6", color: "#5F7266", fontSize: 10, textTransform: "uppercase" }}>
                   <th style={{ textAlign: "left", padding: 6 }}>{labels[childDim] || childDim}</th>
                   <th style={{ textAlign: "right", padding: 6 }}>Spend</th>
                   <th style={{ textAlign: "right", padding: 6 }}>Share</th>
@@ -154,20 +154,20 @@ export default function SpendMix({ tree, dims, labels, baselineNc, onAds }) {
               </thead>
               <tbody>
                 {donutSegs.map(s => (
-                  <tr key={s.name} style={{ borderBottom: "1px solid #F5EDE5", cursor: s.other ? "default" : "pointer" }}
+                  <tr key={s.name} style={{ borderBottom: "1px solid #EEF4EA", cursor: s.other ? "default" : "pointer" }}
                     onClick={() => { if (s.other) return; if (s.node.children) setFocus([...(fnode ? focus : []), s.name]); else onAds(s.name, s.node.ads); }}>
                     <td style={{ padding: 6 }}><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: colorOf(s.name), marginRight: 6 }} />{s.name}</td>
                     <td style={{ padding: 6, textAlign: "right", fontWeight: 600 }}>{money(s.spend)}</td>
                     <td style={{ padding: 6, textAlign: "right" }}>{pct(s.share)}</td>
-                    <td style={{ padding: 6, textAlign: "right", color: "#8a6f68" }}>{x2(s.node.agg.roas)}</td>
+                    <td style={{ padding: 6, textAlign: "right", color: "#5F7266" }}>{x2(s.node.agg.roas)}</td>
                     <td style={{ padding: 6, textAlign: "right", fontWeight: 600, color: ncColor(s.node.agg.ncroas) }}>{x2(s.node.agg.ncroas)}</td>
-                    <td style={{ padding: 6, textAlign: "right", color: "#8a6f68" }}>{s.node.agg.count}</td>
+                    <td style={{ padding: 6, textAlign: "right", color: "#5F7266" }}>{s.node.agg.count}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p style={{ fontSize: 10, color: "#b0978f", margin: "6px 0 0" }}>
+          <p style={{ fontSize: 10, color: "#8FA197", margin: "6px 0 0" }}>
             Click a slice or row to go one dimension deeper{donutNode.children?.[0]?.children ? "" : " (last level: opens the ads)"}. NCROAS green = at/above account baseline ({x2(baselineNc)}).
           </p>
         </div>

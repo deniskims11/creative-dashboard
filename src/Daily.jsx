@@ -62,7 +62,7 @@ export function groupRows(rows, gran) {
 
 // Metrics the chart can plot (each on its own scale, like Moby's metric picker).
 export const DAILY_METRICS = [
-  { key: "roas", label: "ROAS", color: "#CC6138", fmt: v => `${v.toFixed(2)}x` },
+  { key: "roas", label: "ROAS", color: "#2E7D4F", fmt: v => `${v.toFixed(2)}x` },
   { key: "ncroas", label: "NCROAS", color: "#0ea5e9", fmt: v => `${v.toFixed(2)}x`, nc: true },
   { key: "cpa", label: "CPA", color: "#d97706", fmt: v => `$${v.toFixed(0)}` },
   { key: "cpc", label: "CPC", color: "#16a34a", fmt: v => `$${v.toFixed(2)}` },
@@ -90,24 +90,24 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
     return <div title={pace ? "per-day pace (chunks have different lengths)" : `${cmpName} change`} style={{ fontSize: 9, fontWeight: 700, color: good ? "#15803d" : "#b91c1c" }}>{c >= 0 ? "↗" : "↘"}{Math.abs(c) >= 999 ? "999+" : Math.abs(c).toFixed(0)}%{pace ? "/d" : ""}</div>;
   };
   const cmpName = gran === "day" ? "DoD" : gran === "week" ? "WoW" : "MoM";
-  if (!days || !days.length) return <p style={{ fontSize: 12, color: "#8a6f68" }}>Daily data is not available in this build.</p>;
-  if (!rows.length) return <p style={{ fontSize: 12, color: "#8a6f68" }}>No days in the selected range.</p>;
+  if (!days || !days.length) return <p style={{ fontSize: 12, color: "#5F7266" }}>Daily data is not available in this build.</p>;
+  if (!rows.length) return <p style={{ fontSize: 12, color: "#5F7266" }}>No days in the selected range.</p>;
   const tot = rows.reduce((t, r) => { for (const k of ["spend", "rev", "orders", "nc_rev", "imps", "clicks"]) t[k] += r[k]; return t; },
     { spend: 0, rev: 0, orders: 0, nc_rev: 0, imps: 0, clicks: 0 });
   const chart = [...grouped].reverse().map(r => ({ ...r, day: gran === "month" ? r.date : r.date.slice(5) }));
-  const th = { padding: "6px 8px", fontSize: 10, fontWeight: 700, color: "#8a6f68", textTransform: "uppercase", textAlign: "right", position: "sticky", top: 0, background: "#fff" };
-  const td = { padding: "6px 8px", fontSize: 11, textAlign: "right", borderBottom: "1px solid #F5EDE5" };
+  const th = { padding: "6px 8px", fontSize: 10, fontWeight: 700, color: "#5F7266", textTransform: "uppercase", textAlign: "right", position: "sticky", top: 0, background: "#fff" };
+  const td = { padding: "6px 8px", fontSize: 11, textAlign: "right", borderBottom: "1px solid #EEF4EA" };
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#8a6f68" }}>Aggregate by</span>
-        <div style={{ display: "flex", gap: 3, background: "#F6E6D9", borderRadius: 7, padding: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#5F7266" }}>Aggregate by</span>
+        <div style={{ display: "flex", gap: 3, background: "#EAF3E4", borderRadius: 7, padding: 2 }}>
           {[["day", "Daily"], ["week", "Weekly"], ["month", "Monthly"]].map(([k, l]) => (
             <button key={k} onClick={() => setGran(k)} style={{ padding: "4px 12px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 600,
-              background: gran === k ? "#CC6138" : "transparent", color: gran === k ? "#fff" : "#8a6f68" }}>{l}</button>
+              background: gran === k ? "#2E7D4F" : "transparent", color: gran === k ? "#fff" : "#5F7266" }}>{l}</button>
           ))}
         </div>
-        {gran !== "day" && <span style={{ fontSize: 10, color: "#b0978f" }}>{gran === "week" ? "Mon–Sun weeks" : "calendar months"}, clipped to the selected range · arrows = {cmpName} change</span>}
+        {gran !== "day" && <span style={{ fontSize: 10, color: "#8FA197" }}>{gran === "week" ? "Mon–Sun weeks" : "calendar months"}, clipped to the selected range · arrows = {cmpName} change</span>}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginBottom: 6 }}>
         {DAILY_METRICS.filter(m => hasNc || !m.nc).map(m => {
@@ -117,10 +117,10 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
             : m.key === "ctr" ? (tot.imps ? tot.clicks / tot.imps * 100 : null) : m.key === "cvr" ? (tot.clicks ? tot.orders / tot.clicks * 100 : null)
             : m.key === "cpm" ? (tot.imps ? tot.spend / tot.imps * 1000 : null) : m.key === "aov" ? (tot.orders ? tot.rev / tot.orders : null) : null;
           return (
-            <label key={m.key} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: on ? "#3a2429" : "#8a6f68" }}>
+            <label key={m.key} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: on ? "#24352C" : "#5F7266" }}>
               <input type="checkbox" checked={on} onChange={() => setPicked(p => on ? p.filter(k => k !== m.key) : [...p, m.key])} style={{ accentColor: m.color }} />
               <span style={{ fontWeight: 600, color: on ? m.color : undefined }}>{m.key === "roas" ? roasLabel : m.label}</span>
-              {t != null && <span style={{ color: "#8a6f68" }}>{m.fmt(t)}</span>}
+              {t != null && <span style={{ color: "#5F7266" }}>{m.fmt(t)}</span>}
             </label>
           );
         })}
@@ -136,7 +136,7 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
             ))}
             <Tooltip formatter={(v, n) => { const m = DAILY_METRICS.find(x => x.label === n || (x.key === "roas" && n === roasLabel)); return v == null ? "—" : m ? m.fmt(v) : money(v); }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar yAxisId="l" dataKey="spend" name="Spend" fill="#E8DCD0" radius={[3, 3, 0, 0]} />
+            <Bar yAxisId="l" dataKey="spend" name="Spend" fill="#DCE7D6" radius={[3, 3, 0, 0]} />
             {DAILY_METRICS.filter(m => picked.includes(m.key) && (hasNc || !m.nc)).map(m => (
               <Line key={m.key} yAxisId={m.key} dataKey={m.key} name={m.key === "roas" ? roasLabel : m.label} stroke={m.color} strokeWidth={2} dot={{ r: 2 }} connectNulls />
             ))}
@@ -146,7 +146,7 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
       {showTable && (
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
+          <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
             <th style={{ ...th, textAlign: "left" }}>{gran === "day" ? "Day" : gran === "week" ? "Week" : "Month"}</th>
             <th style={th}>Spend</th><th style={th}>Revenue</th><th style={th}>{roasLabel}</th>
             {hasNc && <th style={th}>NC rev</th>}{hasNc && <th style={th}>NCROAS</th>}
@@ -154,7 +154,7 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
           </tr>
         </thead>
         <tbody>
-          <tr style={{ background: "#FBF5F0", fontWeight: 700 }}>
+          <tr style={{ background: "#F6FAF3", fontWeight: 700 }}>
             <td style={{ ...td, textAlign: "left" }}>Total ({rows.length} days{gran !== "day" ? ` · ${grouped.length} ${gran}s` : ""})</td>
             <td style={td}>{money(tot.spend)}</td><td style={td}>{money(tot.rev)}</td>
             <td style={td}>{x2(tot.spend ? tot.rev / tot.spend : null)}</td>
@@ -170,9 +170,9 @@ export default function DailyView({ ads, days, start, end, roasLabel = "ROAS", h
           </tr>
           {grouped.map((r, i) => (
             <tr key={r.date}>
-              <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#3a2429" }}>{label(r)}</td>
+              <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#24352C" }}>{label(r)}</td>
               <td style={{ ...td, fontWeight: 600 }}>{money(r.spend)}{chg(i, "spend")}</td><td style={td}>{money(r.rev)}{chg(i, "rev")}</td>
-              <td style={{ ...td, color: "#6B0010", fontWeight: 600 }}>{x2(r.roas)}{chg(i, "roas")}</td>
+              <td style={{ ...td, color: "#2E7D4F", fontWeight: 600 }}>{x2(r.roas)}{chg(i, "roas")}</td>
               {hasNc && <td style={td}>{money(r.nc_rev)}{chg(i, "nc_rev")}</td>}{hasNc && <td style={{ ...td, color: "#0369a1", fontWeight: 600 }}>{x2(r.ncroas)}{chg(i, "ncroas")}</td>}
               <td style={td}>{Math.round(r.orders).toLocaleString()}{chg(i, "orders")}</td><td style={td}>{pct(r.cvr)}{chg(i, "cvr")}</td><td style={td}>{r.aov == null ? "—" : money(r.aov)}{chg(i, "aov")}</td><td style={td}>{r.cpa == null ? "—" : money(r.cpa)}{chg(i, "cpa", true)}</td>
               <td style={td}>{pct(r.ctr)}{chg(i, "ctr")}</td><td style={td}>{r.cpc == null ? "—" : `$${r.cpc.toFixed(2)}`}{chg(i, "cpc", true)}</td>
