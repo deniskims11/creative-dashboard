@@ -97,74 +97,74 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
     return { periods: list, totals: T };
   }, [ads, days, product, start, end, rows, last]);
 
-  const ncColor = (v) => (v == null ? "#8FA197" : v >= baselineNc ? "#15803d" : "#b91c1c");
+  const ncColor = (v) => (v == null ? "#9CA3AF" : v >= baselineNc ? "#15803d" : "#b91c1c");
   const btn = (on) => ({
     padding: "5px 12px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600,
-    background: on ? "#244134" : "transparent", color: on ? "#fff" : "#5F7266",
+    background: on ? "#244134" : "transparent", color: on ? "#fff" : "#6B7280",
   });
-  const th = { padding: "6px 8px", fontSize: 10, fontWeight: 700, color: "#5F7266", textTransform: "uppercase", letterSpacing: 0.4, textAlign: "right", whiteSpace: "nowrap" };
+  const th = { padding: "6px 8px", fontSize: 10, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.4, textAlign: "right", whiteSpace: "nowrap" };
   const td = { padding: "7px 8px", fontSize: 12, textAlign: "right", whiteSpace: "nowrap" };
 
   return (
     <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", background: "#fff", border: "1px solid #DCE7D6", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#5F7266", marginRight: 4 }}>PRODUCT</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", marginRight: 4 }}>PRODUCT</span>
           {["All", ...products].map(p => <button key={p} onClick={() => setProduct(p)} style={btn(product === p)}>{p}</button>)}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#5F7266" }}>RANGE</span>
-          <input type="date" value={start} min={days[0]} max={last} onChange={e => setStart(e.target.value)} style={{ padding: "4px 6px", border: "1px solid #C9D8C2", borderRadius: 6, fontSize: 12 }} />
-          <span style={{ color: "#8FA197" }}>→</span>
-          <input type="date" value={end} min={days[0]} max={last} onChange={e => setEnd(e.target.value)} style={{ padding: "4px 6px", border: "1px solid #C9D8C2", borderRadius: 6, fontSize: 12 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280" }}>RANGE</span>
+          <input type="date" value={start} min={days[0]} max={last} onChange={e => setStart(e.target.value)} style={{ padding: "4px 6px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12 }} />
+          <span style={{ color: "#9CA3AF" }}>→</span>
+          <input type="date" value={end} min={days[0]} max={last} onChange={e => setEnd(e.target.value)} style={{ padding: "4px 6px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12 }} />
         </div>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#5F7266", marginRight: 4 }}>ROWS</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", marginRight: 4 }}>ROWS</span>
           {["Day", "Week"].map(r => <button key={r} onClick={() => setRows(r)} style={btn(rows === r)}>{r}</button>)}
         </div>
       </div>
 
-      {!totals ? <p style={{ color: "#5F7266" }}>No data in this range.</p> : (<>
-        <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", color: "#24352C" }}>
-          Totals <span style={{ fontWeight: 400, color: "#8FA197", fontSize: 12 }}>· {product} · {periods.length} {rows === "Week" ? "weeks" : "days"} in range</span>
+      {!totals ? <p style={{ color: "#6B7280" }}>No data in this range.</p> : (<>
+        <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", color: "#1F2937" }}>
+          Totals <span style={{ fontWeight: 400, color: "#9CA3AF", fontSize: 12 }}>· {product} · {periods.length} {rows === "Week" ? "weeks" : "days"} in range</span>
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: "#fff", border: "1px solid #DCE7D6", borderTop: "3px solid #5F7266", borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#5F7266", letterSpacing: 0.4 }}>ALL CREATIVES</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#24352C", margin: "4px 0" }}>{money(totals.all.spend)}</div>
-            <div style={{ fontSize: 12, color: "#5F7266" }}>NC ROAS <b style={{ color: "#24352C" }}>{x2(totals.all.ncroas)}</b> · Outbound CPC {cpc(totals.all.cpc)}</div>
-            <div style={{ fontSize: 12, color: "#5F7266" }}>NVP <b style={{ color: "#24352C" }}>{pct1(totals.all.nvp)}</b>{totals.noData.spend > 0 && ` · ${money(totals.noData.spend)} no visitor data`}</div>
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderTop: "3px solid #6B7280", borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7280", letterSpacing: 0.4 }}>ALL CREATIVES</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#1F2937", margin: "4px 0" }}>{money(totals.all.spend)}</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: "#1F2937" }}>{x2(totals.all.ncroas)}</b> · Outbound CPC {cpc(totals.all.cpc)}</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>NVP <b style={{ color: "#1F2937" }}>{pct1(totals.all.nvp)}</b>{totals.noData.spend > 0 && ` · ${money(totals.noData.spend)} no visitor data`}</div>
           </div>
           {BUCKETS.map(b => {
             const t = totals[b.key];
             return (
-              <div key={b.key} style={{ background: "#fff", border: "1px solid #DCE7D6", borderTop: `3px solid ${b.color}`, borderRadius: 10, padding: 14 }}>
+              <div key={b.key} style={{ background: "#fff", border: "1px solid #E5E7EB", borderTop: `3px solid ${b.color}`, borderRadius: 10, padding: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: b.color, letterSpacing: 0.4 }}>{b.label.toUpperCase()}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#24352C", margin: "4px 0" }}>{money(t.spend)}</div>
-                <div style={{ fontSize: 12, color: "#5F7266" }}>{pct1(t.share)} of spend · Outbound CPC {cpc(t.cpc)}</div>
-                <div style={{ fontSize: 12, color: "#5F7266" }}>NC ROAS <b style={{ color: ncColor(t.ncroas) }}>{x2(t.ncroas)}</b> · {roasLabel} {x2(t.roas)}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#1F2937", margin: "4px 0" }}>{money(t.spend)}</div>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>{pct1(t.share)} of spend · Outbound CPC {cpc(t.cpc)}</div>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: ncColor(t.ncroas) }}>{x2(t.ncroas)}</b> · {roasLabel} {x2(t.roas)}</div>
               </div>
             );
           })}
         </div>
 
-        <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#24352C" }}>{rows === "Week" ? "Weekly" : "Daily"} evolution</h3>
-        <p style={{ fontSize: 11, color: "#8FA197", margin: "0 0 10px" }}>
+        <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#1F2937" }}>{rows === "Week" ? "Weekly" : "Daily"} evolution</h3>
+        <p style={{ fontSize: 11, color: "#9CA3AF", margin: "0 0 10px" }}>
           NVP = {visitorNote}, worked out per creative per {rows === "Week" ? "week" : "day"}; the creative's spend that {rows === "Week" ? "week" : "day"} lands in its bucket.
           NC ROAS is green at or above the account baseline ({x2(baselineNc)}), red below. "% tot" = share of that period's spend (incl. creatives with no visitor data).
         </p>
-        <div style={{ background: "#fff", border: "1px solid #DCE7D6", borderRadius: 10, overflowX: "auto" }}>
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr>
                 <th style={{ ...th, textAlign: "left" }} rowSpan={2}>{rows}</th>
-                <th style={{ ...th, borderLeft: "1px solid #DCE7D6" }} colSpan={2}>Total</th>
+                <th style={{ ...th, borderLeft: "1px solid #E5E7EB" }} colSpan={2}>Total</th>
                 {BUCKETS.map(b => (
                   <th key={b.key} colSpan={4} style={{ ...th, textAlign: "center", background: b.color, color: "#fff", borderLeft: "2px solid #fff" }}>{b.label}</th>
                 ))}
               </tr>
-              <tr style={{ borderBottom: "2px solid #DCE7D6" }}>
-                <th style={{ ...th, borderLeft: "1px solid #DCE7D6" }}>Spend</th>
+              <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
+                <th style={{ ...th, borderLeft: "1px solid #E5E7EB" }}>Spend</th>
                 <th style={th}>NC ROAS</th>
                 {BUCKETS.map(b => ["Spend", "% tot", "NC ROAS", "CPC (out)"].map((h, i) => (
                   <th key={b.key + h} style={{ ...th, background: b.bg, borderLeft: i === 0 ? "2px solid #fff" : undefined }}>{h}</th>
@@ -173,18 +173,18 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
             </thead>
             <tbody>
               {periods.map(p => (
-                <tr key={p.period} style={{ borderBottom: "1px solid #EEF4EA" }}>
-                  <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#24352C" }}>{p.label}</td>
-                  <td style={{ ...td, borderLeft: "1px solid #DCE7D6", fontWeight: 600 }}>{money(p.all.spend)}</td>
+                <tr key={p.period} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                  <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#1F2937" }}>{p.label}</td>
+                  <td style={{ ...td, borderLeft: "1px solid #E5E7EB", fontWeight: 600 }}>{money(p.all.spend)}</td>
                   <td style={{ ...td, color: ncColor(p.all.ncroas), fontWeight: 600 }}>{x2(p.all.ncroas)}</td>
                   {BUCKETS.map(b => {
                     const t = p[b.key];
                     const has = t.spend > 0;
                     return [
                       <td key={b.key + "s"} style={{ ...td, background: b.bg, borderLeft: "2px solid #fff", fontWeight: 600 }}>{has ? money(t.spend) : "—"}</td>,
-                      <td key={b.key + "p"} style={{ ...td, background: b.bg, color: "#5F7266" }}>{has ? pct1(t.share) : "—"}</td>,
+                      <td key={b.key + "p"} style={{ ...td, background: b.bg, color: "#6B7280" }}>{has ? pct1(t.share) : "—"}</td>,
                       <td key={b.key + "n"} style={{ ...td, background: b.bg, color: ncColor(t.ncroas), fontWeight: 600 }}>{has ? x2(t.ncroas) : "—"}</td>,
-                      <td key={b.key + "c"} style={{ ...td, background: b.bg, color: "#5F7266" }}>{has ? cpc(t.cpc) : "—"}</td>,
+                      <td key={b.key + "c"} style={{ ...td, background: b.bg, color: "#6B7280" }}>{has ? cpc(t.cpc) : "—"}</td>,
                     ];
                   })}
                 </tr>
