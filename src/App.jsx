@@ -1,3 +1,4 @@
+import DailyView, { dailyRows } from "./Daily.jsx";
 import SpendMix from "./SpendMix.jsx";
 import NvpLedger from "./NvpLedger.jsx";
 import { useEffect, useMemo, useState } from "react";
@@ -15,7 +16,10 @@ const fmtFull = (n) => `$${Math.round(n).toLocaleString()}`;
 const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString();
 const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 
-const TABS = ["Overview", "Win Rate", "Angles", "Concepts", "ICP", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
+const MAX_AN_RULES = 8;
+const DEPTH_BG = ["transparent", "#FBF7F4", "#F5EDE5", "#EFE3D8", "#E9DACD"];
+const depthBg = (d) => DEPTH_BG[Math.min(d, DEPTH_BG.length - 1)];
+const TABS = ["Overview", "Win Rate", "Angles", "Sub-Angles", "Concepts", "ICP", "Formats", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
 
 // Coloured relative to the account baseline (set from the manifest), so the
@@ -37,7 +41,25 @@ const yymmddToIso = (s) => s && /^\d{6}$/.test(s) ? `20${s.slice(0, 2)}-${s.slic
 const isoToYymmdd = (s) => s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10) : null;
 
 // Creation-date range picker shown above the tabs.
-function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, canActivity }) {
+// Quick ranges, counted back from the last day with data (not the wall clock).
+const toD = (yy) => new Date(Date.UTC(2000 + +yy.slice(0, 2), +yy.slice(2, 4) - 1, +yy.slice(4, 6)));
+const toYy = (d) => d.toISOString().slice(2, 10).replace(/-/g, "");
+const addDays = (d, n) => new Date(d.getTime() + n * 864e5);
+function presetRange(key, bounds) {
+  const max = toD(bounds.max), min = toD(bounds.min);
+  const clip = (d) => (d < min ? min : d);
+  const mon = addDays(max, -((max.getUTCDay() + 6) % 7));
+  const m1 = new Date(Date.UTC(max.getUTCFullYear(), max.getUTCMonth(), 1));
+  const r = {
+    l7: [addDays(max, -6), max], l14: [addDays(max, -13), max], l30: [addDays(max, -29), max],
+    tw: [mon, max], lw: [addDays(mon, -7), addDays(mon, -1)],
+    tm: [m1, max], lm: [new Date(Date.UTC(m1.getUTCFullYear(), m1.getUTCMonth() - 1, 1)), addDays(m1, -1)],
+  }[key];
+  return r ? [toYy(clip(r[0])), toYy(r[1])] : [null, null];
+}
+const PRESETS = [["l7", "Last 7 days"], ["l14", "Last 14 days"], ["l30", "Last 30 days"], ["tw", "This week"], ["lw", "Last week"], ["tm", "This month"], ["lm", "Last month"], ["all", "All data"]];
+
+function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, canActivity, compare, setCompare }) {
   if (!bounds) return null;
   const minIso = yymmddToIso(bounds.min);
   const maxIso = yymmddToIso(bounds.max);
@@ -60,6 +82,21 @@ function DateRangePicker({ bounds, start, end, setStart, setEnd, mode, setMode, 
       <input type="date" value={yymmddToIso(end) || maxIso} min={minIso} max={maxIso}
         onChange={e => setEnd(isoToYymmdd(e.target.value))}
         style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }} />
+      <select value="" onChange={e => { const [a, b] = presetRange(e.target.value, bounds); setStart(a); setEnd(b); }}
+        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }}>
+        <option value="">Quick range…</option>
+        {PRESETS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      </select>
+      {mode === "activity" && canActivity && setCompare && (
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "#3a2429" }}>
+          Compare with
+          <select value={compare} onChange={e => setCompare(e.target.value)}
+            style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #D8C8BC", fontSize: 12, color: "#3a2429" }}>
+            <option value="none">None</option>
+            <option value="prev">Previous period</option>
+          </select>
+        </label>
+      )}
       {isFiltered && (
         <button onClick={() => { setStart(null); setEnd(null); }}
           style={{ padding: "4px 10px", border: "1px solid #D8C8BC", background: "#fff", color: "#8a6f68", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Reset</button>
@@ -142,8 +179,11 @@ function sortRows(rows, col, dir) {
 }
 
 // --------- Ad list modal (shown when a bucket row is clicked) ---------
-function AdListModal({ open, title, subtitle, ads, onClose }) {
+function AdListModal({ open, title, subtitle, ads, onClose, days, range, initialMode }) {
   const [sort, setSort] = useState({ col: "spend", dir: "desc" });
+  const [mode, setMode] = useState("ads");
+  const [focus, setFocus] = useState(null); // one ad shown by day
+  useEffect(() => { setMode(initialMode || "ads"); setFocus(null); }, [open, title, initialMode]);
   const sortedAds = useMemo(() => {
     if (!ads) return [];
     return ads.slice().sort((a, b) => {
@@ -196,6 +236,15 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#50000B" }}>{title}</h3>
             {subtitle && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#8a6f68" }}>{subtitle}</p>}
             <p style={{ margin: "4px 0 0", fontSize: 11, color: "#b0978f" }}>{sortedAds.length.toLocaleString()} ads</p>
+            {days?.length > 0 && (
+              <div style={{ display: "flex", gap: 3, background: "#E8DCD0", borderRadius: 6, padding: 2, marginTop: 8, width: "fit-content" }}>
+                {[["ads", "Ads"], ["daily", "By day"]].map(([k, l]) => (
+                  <button key={k} onClick={() => { setMode(k); setFocus(null); }} style={{ padding: "4px 12px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 600,
+                    background: mode === k && !focus ? "#fff" : "transparent", color: mode === k && !focus ? "#50000B" : "#8a6f68" }}>{l}</button>
+                ))}
+                {focus && <span style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#50000B", background: "#fff", borderRadius: 5, maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={focus.ad_name}>By day: {focus.ad_name}</span>}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={downloadCsv} style={{ padding: "6px 12px", border: "1px solid #D8C8BC", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#3a2429" }}>Download CSV ({sortedAds.length})</button>
@@ -203,6 +252,15 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
           </div>
         </div>
         <div style={{ overflow: "auto", flex: 1 }}>
+          {(mode === "daily" || focus) ? (
+            <div>
+              <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 8px" }}>
+                {focus ? "This ad" : `All ${sortedAds.length.toLocaleString()} ads in this list`}, day by day for {range?.[0] || days[0]} → {range?.[1] || days[days.length - 1]} (the calendar range at the top). Newest day first.
+                {focus && <> · <span style={{ color: "#6B0010", cursor: "pointer", fontWeight: 600 }} onClick={() => setFocus(null)}>back to ads</span></>}
+              </p>
+              <DailyView ads={focus ? [focus] : ads} days={days} start={range?.[0]} end={range?.[1]} roasLabel="Pixel ROAS" hasNc={HAS_NC} />
+            </div>
+          ) : (<>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
             <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
               <tr style={{ borderBottom: "2px solid #E8DCD0" }}>
@@ -227,7 +285,9 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
                   : `Open in Ads Manager (Meta login required). Ad ID: ${adIds[0] || "?"}`;
                 return (
                   <tr key={i} style={{ borderBottom: "1px solid #F5EDE5" }}>
-                    <td style={{ ...td, fontSize: 10, fontFamily: "ui-monospace, monospace", maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={a.ad_name}>{a.ad_name}</td>
+                    <td style={{ ...td, fontSize: 10, fontFamily: "ui-monospace, monospace", maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={a.ad_name}>
+                      {days?.length > 0 && <button onClick={() => setFocus(a)} title="This ad by day" style={{ border: "1px solid #E8DCD0", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px", marginRight: 6 }}>📈</button>}
+                      {a.ad_name}</td>
                     <td style={{ ...td, textAlign: "center", width: 72 }}>
                       {a.thumbnail_url && previewUrl ? (
                         <a href={previewUrl} target="_blank" rel="noopener noreferrer" title={previewTitle} style={{ display: "inline-block", lineHeight: 0 }}>
@@ -273,6 +333,7 @@ function AdListModal({ open, title, subtitle, ads, onClose }) {
             </tbody>
           </table>
           {sortedAds.length > 500 && <p style={{ fontSize: 11, color: "#b0978f", marginTop: 12, textAlign: "center" }}>Showing top 500 — CSV export includes all {sortedAds.length.toLocaleString()}.</p>}
+          </>)}
         </div>
       </div>
     </div>
@@ -285,7 +346,21 @@ let HAS_NC = true;
 // Set from the manifest: true when per-ad visitor counts are present.
 let HAS_NV = false;
 
-function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
+// Global "compare with previous period": App fills CMP each render; tables read it.
+const CMP = { on: false, ads: [], label: "", cache: {} };
+const cmpRow = (dim, name) => {
+  if (!CMP.on || !dim) return null;
+  if (!CMP.cache[dim]) CMP.cache[dim] = new Map(toBreakdownRows(groupBy(CMP.ads, dim)).map(r => [String(r.name), r]));
+  return CMP.cache[dim].get(String(name)) || { _none: true };
+};
+function Delta({ cur, prev, inverse = false }) {
+  if (!CMP.on || prev == null) return null;
+  if (prev === "new" || !prev || cur == null) return <div style={{ fontSize: 9, color: "#b0978f" }}>new</div>;
+  const c = ((cur - prev) / Math.abs(prev)) * 100; const good = inverse ? c < 0 : c > 0;
+  return <div title={`vs ${CMP.label}`} style={{ fontSize: 9, fontWeight: 700, color: good ? "#15803d" : "#b91c1c" }}>{c >= 0 ? "↗" : "↘"}{Math.abs(c) >= 999 ? "999+" : Math.abs(c).toFixed(0)}%</div>;
+}
+
+function BreakdownTable({ rows, nameLabel = "Name", onRowClick, dim }) {
   const [sort, setSort] = useState({ col: "spend", dir: "desc" });
   const cols = [
     { key: "name", label: nameLabel, align: "left" },
@@ -318,15 +393,16 @@ function BreakdownTable({ rows, nameLabel = "Name", onRowClick }) {
               onMouseLeave={e => onRowClick && (e.currentTarget.style.background = "transparent")}>
             <td style={{ ...td, fontWeight: 600 }}>{r.name}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.creatives)}</td>
-            <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}</td>
-            <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}</td>
-            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /></td>
-            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} base="ncroas" /></td>}
+            {(() => { const p = cmpRow(dim, r.name); r._p = p && (p._none ? "new" : p); return null; })()}
+            <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.spend)}<Delta cur={r.spend} prev={r._p === "new" ? "new" : r._p?.spend} /></td>
+            <td style={{ ...td, textAlign: "right" }}>{fmt(r.revenue)}<Delta cur={r.revenue} prev={r._p === "new" ? "new" : r._p?.revenue} /></td>
+            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.roas} /><Delta cur={r.roas} prev={r._p === "new" ? "new" : r._p?.roas} /></td>
+            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.ncroas} base="ncroas" /><Delta cur={r.ncroas} prev={r._p === "new" ? "new" : r._p?.ncroas} /></td>}
             {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new)}</td>}
             {HAS_NV && <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.pct_new_visitors)}</td>}
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.purchases)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.aov ? `$${r.aov.toFixed(0)}` : "—"}</td>
-            {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}</td>}
+            {HAS_NC && <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.nccpa ? `$${r.nccpa.toFixed(0)}` : "—"}<Delta cur={r.nccpa} prev={r._p === "new" ? "new" : r._p?.nccpa} inverse /></td>}
             {[r.winRate1k, r.winRate15k, r.winRate50k, ...(HAS_NC ? [r.effRate] : [])].map((v, j) => (
               <td key={j} title={`${r.eligible ?? "?"} launches eligible`} style={{ ...td, textAlign: "right", color: (r.eligible ?? 99) < 5 ? "#cbb8b0" : td.color }}>
                 {(r.eligible ?? 1) === 0 ? "—" : fmtPct(v)}
@@ -440,6 +516,27 @@ export default function Dashboard() {
   const [anMinSpend, setAnMinSpend] = useState(0);
   const [anTopN, setAnTopN] = useState(20);
   const [anExclusions, setAnExclusions] = useState({}); // {dim: Set of excluded values} — secondary exclude-list filter
+  const [compare, setCompare] = useState("prev");
+  // Saved / shareable Analysis views (URL #view=… and per-browser presets).
+  const viewOf = () => ({
+    r: anRules.filter(r => r.dim).map(r => [r.dim, [...r.values]]), m: anMetric, ms: anMinSpend, t: anTopN,
+    x: Object.entries(anExclusions).filter(([, v]) => v.size).map(([d, v]) => [d, [...v]]),
+    ds: dateStart, de: dateEnd, dm: dateMode,
+  });
+  const applyView = (v) => {
+    if (!v) return;
+    setAnRules((v.r?.length ? v.r : [["angle", []]]).map(([dim, vals]) => ({ dim, values: new Set(vals) })));
+    if (v.m) setAnMetric(v.m); if (v.ms != null) setAnMinSpend(v.ms); if (v.t) setAnTopN(v.t);
+    setAnExclusions(Object.fromEntries((v.x || []).map(([d, vals]) => [d, new Set(vals)])));
+    if (v.dm) setDateMode(v.dm); setDateStart(v.ds ?? null); setDateEnd(v.de ?? null);
+    setTab("Analysis");
+  };
+  const encodeView = (v) => btoa(unescape(encodeURIComponent(JSON.stringify(v))));
+  const decodeView = (h) => { try { return JSON.parse(decodeURIComponent(escape(atob(h)))); } catch { return null; } };
+  useEffect(() => {
+    const m = (window.location.hash || "").match(/#view=([^&]+)/);
+    if (m) { const v = decodeView(m[1]); if (v) setTimeout(() => applyView(v), 0); }
+  }, []);
 
   // Data Clean Up state
   const [cleanDim, setCleanDim] = useState("angle");
@@ -454,7 +551,7 @@ export default function Dashboard() {
 
   // Global modal state (shared across tabs)
   const [modalState, setModalState] = useState({ open: false, title: "", subtitle: "", ads: [] });
-  const openModal = (title, subtitle, ads) => setModalState({ open: true, title, subtitle, ads });
+  const openModal = (title, subtitle, ads, mode) => setModalState({ open: true, title, subtitle, ads, mode });
   const closeModal = () => setModalState(s => ({ ...s, open: false }));
 
   useEffect(() => {
@@ -512,6 +609,18 @@ export default function Dashboard() {
   }, [manifest, mappings, dateStart, dateEnd, dateMode, canActivity]);
 
   const totals = useMemo(() => aggregate(ads), [ads]);
+  const mapAds = (raw) => (!Object.keys(mappings).length ? raw : raw.map(a => { const c = { ...a }; for (const [dim, map] of Object.entries(mappings)) if (c[dim] != null && map[c[dim]]) c[dim] = map[c[dim]]; return c; }));
+  const prevRange = () => {
+    const s0 = toD(dateStart), e0 = toD(dateEnd); const len = Math.round((e0 - s0) / 864e5) + 1;
+    const pe = addDays(s0, -1), ps = addDays(pe, -(len - 1));
+    return { ps, pe, label: `${ps.toISOString().slice(0, 10)} → ${pe.toISOString().slice(0, 10)}` };
+  };
+  const cmp = useMemo(() => {
+    if (!(compare === "prev" && canActivity && dateMode === "activity" && dateStart && dateEnd)) return null;
+    const { ps, pe, label } = prevRange();
+    const raw = mapAds(periodAds(manifest.ads, manifest.days, toYy(ps), toYy(pe)));
+    return { ads: raw, totals: aggregate(raw), label };
+  }, [compare, canActivity, dateMode, dateStart, dateEnd, manifest, mappings]);
   const monthlyData = useMemo(() => monthly(ads), [ads]);
   const [wkDim, setWkDim] = useState("angle");
   const isoOf = (yy) => (yy ? `20${yy.slice(0, 2)}-${yy.slice(2, 4)}-${yy.slice(4, 6)}` : null);
@@ -540,6 +649,7 @@ export default function Dashboard() {
   const concepts = useMemo(() => toBreakdownRows(groupBy(ads, "concept")), [ads]);
   const angles = useMemo(() => toBreakdownRows(groupBy(ads, "angle")), [ads]);
   const icps = useMemo(() => toBreakdownRows(groupBy(ads, "icp")), [ads]);
+  const subAngles = useMemo(() => toBreakdownRows(groupBy(ads, "sub_angle")), [ads]);
   const awareness = useMemo(() => toBreakdownRows(groupBy(ads, "awareness_stage")), [ads]);
   const scripts = useMemo(() => toBreakdownRows(groupBy(ads, "script")), [ads]);
   const formatList = useMemo(
@@ -579,6 +689,26 @@ export default function Dashboard() {
       return true;
     });
   }, [ads, anRules, anExclusions]);
+
+  // Previous period grouped along the Analysis dimensions (Tendency toggle).
+  const prevInfo = useMemo(() => {
+    if (!(canActivity && dateMode === "activity" && dateStart && dateEnd)) return null;
+    const { ps, pe, label } = prevRange();
+    let raw = mapAds(periodAds(manifest.ads, manifest.days, toYy(ps), toYy(pe)));
+    raw = raw.filter(a => {
+      for (const rule of anRules) { if (!rule.dim || rule.values.size === 0) continue; if (!rule.values.has(a[rule.dim] ?? "(untagged)")) return false; }
+      for (const [dim, ex] of Object.entries(anExclusions)) { if (ex.size && ex.has(a[dim] ?? "(untagged)")) return false; }
+      return true;
+    });
+    const dims = anRules.map(r => r.dim).filter(Boolean); const map = new Map();
+    const walk = (rows, i, path) => {
+      if (i >= dims.length) return;
+      const g = new Map(); for (const a of rows) { const v = a[dims[i]] ?? "(untagged)"; if (!g.has(v)) g.set(v, []); g.get(v).push(a); }
+      for (const [v, rs] of g) { const p = path ? `${path}\u241F${v}` : String(v); map.set(p, aggregate(rs)); walk(rs, i + 1, p); }
+    };
+    walk(raw, 0, "");
+    return { map, label, empty: raw.length === 0 };
+  }, [manifest, mappings, dateStart, dateEnd, dateMode, canActivity, anRules, anExclusions]);
 
   // Build tree: dims = anRules ordered
   const analysisTree = useMemo(() => {
@@ -733,6 +863,7 @@ export default function Dashboard() {
 
   HAS_NC = manifest.has_nc !== false;
   setBaseline(manifest.baseline);
+  CMP.on = !!cmp && cmp.ads.length > 0; CMP.ads = cmp?.ads || []; CMP.label = cmp?.label || ""; CMP.cache = {};
   HAS_NV = (manifest.ads || []).some(a => a.metrics && a.metrics.visitors);
   const fromMaster = (manifest.source || "").startsWith("master-workbook");
 
@@ -791,6 +922,7 @@ export default function Dashboard() {
           mode={dateMode}
           setMode={setDateMode}
           canActivity={canActivity}
+          compare={compare} setCompare={setCompare}
           bounds={dateBounds}
           start={dateStart}
           end={dateEnd}
@@ -815,13 +947,13 @@ export default function Dashboard() {
           <div>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${HAS_NC && HAS_NV ? 6 : 5}, 1fr)`, gap: 12, marginBottom: 20 }}>
               {[
-                { label: "Total Spend", value: fmt(totals.spend), sub: "channel-reported" },
-                { label: HAS_NC ? "Pixel Revenue" : "Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders` },
-                { label: HAS_NC ? "Pixel ROAS" : "ROAS", value: `${totals.roas.toFixed(2)}x`, sub: HAS_NC ? "pixel rev / spend" : "Meta-attributed rev / spend" },
+                { label: "Total Spend", value: fmt(totals.spend), sub: "channel-reported", k: "spend" },
+                { label: HAS_NC ? "Pixel Revenue" : "Revenue", value: fmt(totals.rev), sub: `${fmtNum(totals.txns)} orders`, k: "rev" },
+                { label: HAS_NC ? "Pixel ROAS" : "ROAS", value: `${totals.roas.toFixed(2)}x`, sub: HAS_NC ? "pixel rev / spend" : "Meta-attributed rev / spend", k: "roas" },
                 ...(HAS_NC ? [
-                  { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}` },
-                  { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders` },
-                  ...(HAS_NV ? [{ label: "% New Visitors", value: fmtPct(totals.pct_new_visitors), sub: `${fmtNum(totals.new_visitors)} of ${fmtNum(totals.visitors)}` }] : []),
+                  { label: "NCROAS", value: `${(totals.ncroas ?? 0).toFixed(2)}x`, sub: `NC rev ${fmt(totals.nc_rev)}`, k: "ncroas" },
+                  { label: "% New Cust.", value: fmtPct(totals.pct_new), sub: `${fmtNum(totals.nc_txns)} NC orders`, k: "pct_new" },
+                  ...(HAS_NV ? [{ label: "% New Visitors", value: fmtPct(totals.pct_new_visitors), sub: `${fmtNum(totals.new_visitors)} of ${fmtNum(totals.visitors)}`, k: "pct_new_visitors" }] : []),
                 ] : [
                   { label: "CPA", value: totals.txns ? `$${(totals.spend / totals.txns).toFixed(0)}` : "—", sub: "spend / purchases" },
                   { label: "AOV", value: totals.txns ? `$${(totals.rev / totals.txns).toFixed(0)}` : "—", sub: "rev / purchases" },
@@ -829,11 +961,22 @@ export default function Dashboard() {
               ].map((kpi, i) => (
                 <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "16px 14px", border: "1px solid #E8DCD0" }}>
                   <div style={{ fontSize: 10, color: "#b0978f", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{kpi.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#50000B", marginTop: 4 }}>{kpi.value}</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#50000B" }}>{kpi.value}</div>
+                    {cmp && kpi.k && <Delta cur={totals[kpi.k]} prev={cmp.totals[kpi.k]} />}
+                  </div>
+                  {cmp && kpi.k && <div style={{ fontSize: 10, color: "#b0978f" }}>vs {kpi.k === "spend" || kpi.k === "rev" ? fmt(cmp.totals[kpi.k]) : kpi.k.includes("roas") ? `${(cmp.totals[kpi.k] ?? 0).toFixed(2)}x` : fmtPct(cmp.totals[kpi.k])} prev. period</div>}
                   <div style={{ fontSize: 11, color: "#b0978f", marginTop: 2 }}>{kpi.sub}</div>
                 </div>
               ))}
             </div>
+
+            {canActivity && (
+              <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", color: "#3a2429" }}>Daily metrics <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· every creative in view, day by day for the calendar range · tick metrics to plot them</span></h3>
+                <DailyView ads={ads} days={manifest.days} start={isoOf(dateStart)} end={isoOf(dateEnd)} roasLabel="Pixel ROAS" hasNc={HAS_NC} />
+              </div>
+            )}
 
             {weeklyTotals.rows.length > 0 && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E8DCD0", marginBottom: 20 }}>
@@ -1023,21 +1166,33 @@ export default function Dashboard() {
         {tab === "Angles" && (
           <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Angle Performance ({angles.length} angles) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
-            <BreakdownTable rows={angles} nameLabel="Angle" onRowClick={r => openModal(`Angle: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+            <BreakdownTable rows={angles} nameLabel="Angle" dim="angle" onRowClick={r => openModal(`Angle: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+          </div>
+        )}
+        {tab === "Sub-Angles" && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Sub-Angle Performance ({subAngles.length} sub-angles) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+            <BreakdownTable rows={subAngles} nameLabel="Sub-Angle" dim="sub_angle" onRowClick={r => openModal(`Sub-angle: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+          </div>
+        )}
+        {tab === "Formats" && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Format Performance ({formats.length} formats) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
+            <BreakdownTable rows={formats} nameLabel="Format" dim="format" onRowClick={r => openModal(`Format: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "Concepts" && (
           <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Concept Performance ({concepts.length} concepts) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
-            <BreakdownTable rows={concepts} nameLabel="Concept" onRowClick={r => openModal(`Concept: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+            <BreakdownTable rows={concepts} nameLabel="Concept" dim="concept" onRowClick={r => openModal(`Concept: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
         {tab === "ICP" && (
           <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>ICP Performance ({icps.length} segments) · <span style={{ fontWeight: 400, color: "#b0978f" }}>click a row to drill into creatives</span></h3>
-            <BreakdownTable rows={icps} nameLabel="ICP" onRowClick={r => openModal(`ICP: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+            <BreakdownTable rows={icps} nameLabel="ICP" dim="icp" onRowClick={r => openModal(`ICP: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
           </div>
         )}
 
@@ -1055,14 +1210,14 @@ export default function Dashboard() {
             {bdView === "Awareness Stage" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Awareness Stage ({awareness.length})</h3>
-                <BreakdownTable rows={awareness} nameLabel="Awareness Stage" onRowClick={r => openModal(`Awareness: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={awareness} nameLabel="Awareness Stage" dim="awareness_stage" onRowClick={r => openModal(`Awareness: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Script" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Script / Hook ({scripts.length})</h3>
-                <BreakdownTable rows={scripts} nameLabel="Script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={scripts} nameLabel="Script" dim="script" onRowClick={r => openModal(`Script: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
@@ -1070,28 +1225,28 @@ export default function Dashboard() {
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Account efficiency by funnel stage</h3>
                 <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 12px" }}>TOF = Unaware / Problem Aware, MOF = Solution Aware, BOF = Product / Most Aware (from the awareness field); NR_ names use their own TOF/MOF/BOF token. For strategist × funnel, use Analysis → Strategist then Funnel Stage.</p>
-                <BreakdownTable rows={funnels} nameLabel="Funnel" onRowClick={r => openModal(`Funnel: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={funnels} nameLabel="Funnel" dim="funnel" onRowClick={r => openModal(`Funnel: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Strategist" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Strategist ({strategists.length}) <span style={{ fontWeight: 400, fontSize: 11, color: "#b0978f" }}>· from the 10th field of renamed ad names; older names carry no strategist</span></h3>
-                <BreakdownTable rows={strategists} nameLabel="Strategist" onRowClick={r => openModal(`Strategist: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={strategists} nameLabel="Strategist" dim="strategist" onRowClick={r => openModal(`Strategist: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Launch Status" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Carry-over vs new launches</h3>
-                <BreakdownTable rows={launchStatuses} nameLabel="Launch Status" onRowClick={r => openModal(`Launch status: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={launchStatuses} nameLabel="Launch Status" dim="launch_status" onRowClick={r => openModal(`Launch status: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
             {bdView === "Format" && (
               <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px", color: "#3a2429" }}>Performance by Format ({formats.length} formats)</h3>
-                <BreakdownTable rows={formats} nameLabel="Format" onRowClick={r => openModal(`Format: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
+                <BreakdownTable rows={formats} nameLabel="Format" dim="format" onRowClick={r => openModal(`Format: ${r.name}`, `${r.creatives} creatives · Spend ${fmt(r.spend)}`, r.ads)} />
               </div>
             )}
 
@@ -1121,6 +1276,8 @@ export default function Dashboard() {
         {tab === "Analysis" && (
           <AnalysisTab
             ads={ads}
+            prevInfo={prevInfo} days={manifest?.days} range={[isoOf(dateStart), isoOf(dateEnd)]} compareOn={compare === "prev"}
+            viewOf={viewOf} applyView={applyView} encodeView={encodeView}
             ALL_DIMS_LABELS={ALL_DIMS_LABELS}
             METRIC_MAP={METRIC_MAP}
             anRules={anRules} setAnRules={setAnRules}
@@ -1208,7 +1365,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      <AdListModal open={modalState.open} title={modalState.title} subtitle={modalState.subtitle} ads={modalState.ads} onClose={closeModal} />
+      <AdListModal open={modalState.open} title={modalState.title} subtitle={modalState.subtitle} ads={modalState.ads} onClose={closeModal}
+        days={manifest?.days} range={[isoOf(dateStart), isoOf(dateEnd)]} initialMode={modalState.mode} />
       <PatModal open={patModalOpen} onSave={handlePatSaved} onSkip={handlePatSkipped} onClose={() => setPatModalOpen(false)} />
       {categoryInspector && (
         <CategoryMembersModal
@@ -1534,7 +1692,7 @@ function ValuePicker({ ads, dim, selected, onToggle, onClear }) {
 }
 
 // -------- Tree table with expand/collapse + leaf drilldown --------
-function TreeTable({ nodes, dimLabels, onLeafClick }) {
+function TreeTable({ nodes, dimLabels, onLeafClick, onDaily, tendency, prevMap, timeline, days, range }) {
   const [expanded, setExpanded] = useState(new Set());
   const [sortCol, setSortCol] = useState("spend");
   const [sortDir, setSortDir] = useState("desc");
@@ -1570,11 +1728,43 @@ function TreeTable({ nodes, dimLabels, onLeafClick }) {
       const isLeaf = !n.children;
       const isOpen = expanded.has(path);
       rows.push({ n, depth, path, isLeaf, isOpen });
+      // Timeline view: an open row lists its days (newest first) before its children.
+      if (timeline && isOpen && days?.length) {
+        for (const d of dailyRows(n.ads, days, range?.[0], range?.[1])) rows.push({ day: d, depth: depth + 1, path: `${path}\u241F@${d.date}` });
+      }
       if (!isLeaf && isOpen) walk(n.children, depth + 1, path);
     }
   };
   walk(nodes, 0, "");
 
+  const delta = (path, key, cur, inverse = false) => {
+    if (!tendency || !prevMap) return null;
+    const p = prevMap.get(path)?.[key];
+    if (p == null || !p || cur == null) return <span style={{ fontSize: 9, color: "#b0978f", marginLeft: 4 }}>new</span>;
+    const ch = (cur - p) / Math.abs(p) * 100;
+    const good = inverse ? ch < 0 : ch > 0;
+    return <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 4, padding: "0 3px", borderRadius: 3,
+      color: good ? "#15803d" : "#b91c1c", background: good ? "#EAF6EE" : "#FBEAEA" }}>{ch >= 0 ? "↗" : "↘"}{Math.abs(ch) >= 999 ? "999+" : Math.abs(ch).toFixed(0)}%</span>;
+  };
+  const dayRow = (r) => {
+    const d = r.day;
+    return (
+      <tr key={r.path} style={{ borderBottom: "1px solid #F5EDE5", background: "#FFFDF9" }}>
+        <td style={{ ...td, paddingLeft: 10 + r.depth * 20, color: "#5a4046" }}>
+          <span style={{ display: "inline-block", width: 14, color: "#b0978f" }}>🗓</span>{d.date}
+        </td>
+        <td style={{ ...td, textAlign: "right", color: "#b0978f" }}>—</td>
+        <td style={{ ...td, textAlign: "right" }}>{fmt(d.spend)}</td>
+        <td style={{ ...td, textAlign: "right" }}>{fmt(d.rev)}</td>
+        <td style={{ ...td, textAlign: "right" }}>{d.roas == null ? "—" : `${d.roas.toFixed(2)}x`}</td>
+        {HAS_NC && <td style={{ ...td, textAlign: "right" }}>{d.ncroas == null ? "—" : `${d.ncroas.toFixed(2)}x`}</td>}
+        <td style={{ ...td, textAlign: "right", color: "#b0978f" }}>—</td>
+        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(d.orders)}</td>
+        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{d.aov ? `$${d.aov.toFixed(0)}` : "—"}</td>
+        <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{d.cpm ? `$${d.cpm.toFixed(1)}` : "—"}</td>
+      </tr>
+    );
+  };
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <thead>
@@ -1584,6 +1774,7 @@ function TreeTable({ nodes, dimLabels, onLeafClick }) {
           {sortHeader("Spend", "spend")}
           {sortHeader("Revenue", "rev")}
           {sortHeader("ROAS", "roas")}
+          {HAS_NC && sortHeader("NCROAS", "ncroas")}
           {sortHeader("% New Cust.", "pct_new")}
           {sortHeader("Purchases", "txns")}
           {sortHeader("AOV", "aov")}
@@ -1591,25 +1782,28 @@ function TreeTable({ nodes, dimLabels, onLeafClick }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map(r => (
+        {rows.map(r => r.day ? dayRow(r) : (
           <tr key={r.path}
-            onClick={() => r.isLeaf ? onLeafClick(r.n, r.path) : toggle(r.path)}
-            style={{ borderBottom: "1px solid #F5EDE5", cursor: "pointer", background: r.depth === 0 ? "transparent" : r.depth === 1 ? "#FBF7F4" : "#F5EDE5" }}
+            onClick={() => (r.isLeaf && !timeline) ? onLeafClick(r.n, r.path) : toggle(r.path)}
+            style={{ borderBottom: "1px solid #F5EDE5", cursor: "pointer", background: depthBg(r.depth) }}
             onMouseEnter={e => (e.currentTarget.style.background = "#FDE9BF")}
-            onMouseLeave={e => (e.currentTarget.style.background = r.depth === 0 ? "transparent" : r.depth === 1 ? "#FBF7F4" : "#F5EDE5")}>
+            onMouseLeave={e => (e.currentTarget.style.background = depthBg(r.depth))}>
             <td style={{ ...td, paddingLeft: 10 + r.depth * 20, fontWeight: r.depth === 0 ? 600 : 500 }}>
-              <span style={{ display: "inline-block", width: 14, color: "#b0978f" }}>{!r.isLeaf ? (r.isOpen ? "▼" : "▶") : "•"}</span>
+              <span style={{ display: "inline-block", width: 14, color: "#b0978f" }}>{(!r.isLeaf || timeline) ? (r.isOpen ? "▼" : "▶") : "•"}</span>
               {r.n.value}
               <span style={{ fontSize: 10, color: "#b0978f", marginLeft: 6 }}>({r.n.agg.count})</span>
+              {onDaily && <button onClick={e => { e.stopPropagation(); onDaily(r.n, r.path); }} title="By day"
+                style={{ marginLeft: 8, border: "1px solid #E8DCD0", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 10, padding: "1px 5px" }}>📈</button>}
             </td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.n.agg.count)}</td>
-            <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.n.agg.spend)}</td>
-            <td style={{ ...td, textAlign: "right" }}>{fmt(r.n.agg.rev)}</td>
-            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.n.agg.roas} /></td>
+            <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>{fmt(r.n.agg.spend)}{delta(r.path, "spend", r.n.agg.spend)}</td>
+            <td style={{ ...td, textAlign: "right" }}>{fmt(r.n.agg.rev)}{delta(r.path, "rev", r.n.agg.rev)}</td>
+            <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.n.agg.roas} />{delta(r.path, "roas", r.n.agg.roas)}</td>
+            {HAS_NC && <td style={{ ...td, textAlign: "right" }}><RoasBadge roas={r.n.agg.ncroas} base="ncroas" />{delta(r.path, "ncroas", r.n.agg.ncroas)}</td>}
             <td style={{ ...td, textAlign: "right" }}>{fmtPct(r.n.agg.pct_new)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{fmtNum(r.n.agg.txns)}</td>
             <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.n.agg.aov ? `$${r.n.agg.aov.toFixed(0)}` : "—"}</td>
-            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.n.agg.cpm ? `$${r.n.agg.cpm.toFixed(1)}` : "—"}</td>
+            <td style={{ ...td, textAlign: "right", color: "#8a6f68" }}>{r.n.agg.cpm ? `$${r.n.agg.cpm.toFixed(1)}` : "—"}{delta(r.path, "cpm", r.n.agg.cpm, true)}</td>
           </tr>
         ))}
       </tbody>
@@ -1618,8 +1812,59 @@ function TreeTable({ nodes, dimLabels, onLeafClick }) {
 }
 
 // -------- Analysis tab with row-based rule picker + tree table --------
-function AnalysisTab({ ads, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, anMetric, setAnMetric, anMinSpend, setAnMinSpend, anTopN, setAnTopN, anExclusions, setAnExclusions, analysisTree, analysisChartData, openModal }) {
+// Built-in starting points for the Analysis tab (definition-sheet hierarchy first).
+const BUILTIN_VIEWS = [
+  { name: "Angle › Sub-Angle › Concept", v: { r: [["angle", []], ["sub_angle", []], ["concept", []]], m: "spend" } },
+  { name: "Angle › Format", v: { r: [["angle", []], ["format", []]], m: "spend" } },
+  { name: "Strategist › Angle › Format", v: { r: [["strategist", []], ["angle", []], ["format", []]], m: "spend" } },
+  { name: "Format › Awareness", v: { r: [["format", []], ["awareness_stage", []]], m: "spend" } },
+  { name: "ICP › Angle", v: { r: [["icp", []], ["angle", []]], m: "spend" } },
+];
+const SAVED_KEY = "nr-analysis-views";
+const loadSaved = () => { try { return JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); } catch { return []; } };
+
+function ViewBar({ viewOf, applyView, encodeView }) {
+  const [saved, setSaved] = useState(loadSaved);
+  const [msg, setMsg] = useState("");
+  const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 2500); };
+  const persist = (list) => { setSaved(list); try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch {} };
+  const shareLink = () => `${location.origin}${location.pathname}#view=${encodeView(viewOf())}`;
+  const btn = { padding: "5px 10px", border: "1px solid #E8DCD0", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#50000B" };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #F5EDE5" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "#8a6f68" }}>VIEWS</span>
+      <select value="" onChange={e => {
+        const [kind, i] = e.target.value.split(":");
+        if (kind === "b") applyView(BUILTIN_VIEWS[+i].v); else if (kind === "s") applyView(saved[+i].v);
+      }} style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #E8DCD0", fontSize: 12, minWidth: 220 }}>
+        <option value="">Open a view…</option>
+        <optgroup label="Starting points">{BUILTIN_VIEWS.map((b, i) => <option key={b.name} value={`b:${i}`}>{b.name}</option>)}</optgroup>
+        {saved.length > 0 && <optgroup label="Saved in this browser">{saved.map((b, i) => <option key={b.name + i} value={`s:${i}`}>{b.name}</option>)}</optgroup>}
+      </select>
+      <button style={btn} onClick={() => {
+        const name = window.prompt("Name this view (e.g. \"Hair Loss angles by format\")");
+        if (!name) return;
+        persist([...saved.filter(x => x.name !== name), { name, v: viewOf() }]); flash(`Saved "${name}"`);
+      }}>Save as…</button>
+      {saved.length > 0 && <button style={btn} onClick={() => {
+        const name = window.prompt(`Delete which saved view?\n${saved.map(x => x.name).join("\n")}`);
+        if (!name) return; persist(saved.filter(x => x.name !== name)); flash(`Deleted "${name}"`);
+      }}>Delete…</button>}
+      <button style={{ ...btn, background: "#6B0010", color: "#fff", borderColor: "#6B0010" }} onClick={async () => {
+        const url = shareLink();
+        try { await navigator.clipboard.writeText(url); flash("Link copied — anyone opening it sees this exact setup"); }
+        catch { window.prompt("Copy this link:", url); }
+      }}>🔗 Copy share link</button>
+      {msg && <span style={{ fontSize: 11, color: "#15803d", fontWeight: 600 }}>{msg}</span>}
+    </div>
+  );
+}
+
+function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView, encodeView, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, anMetric, setAnMetric, anMinSpend, setAnMinSpend, anTopN, setAnTopN, anExclusions, setAnExclusions, analysisTree, analysisChartData, openModal }) {
   const [expandedExcludeDim, setExpandedExcludeDim] = useState(null);
+  const [tendency, setTendency] = useState(!!compareOn);
+  useEffect(() => { setTendency(!!compareOn); }, [compareOn]);
+  const [timeline, setTimeline] = useState(false);
 
   const setRuleDim = (i, dim) => setAnRules(rs => rs.map((r, idx) => idx === i ? { dim, values: new Set() } : r));
   const toggleRuleValue = (i, v) => setAnRules(rs => rs.map((r, idx) => {
@@ -1630,7 +1875,7 @@ function AnalysisTab({ ads, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, an
   }));
   const clearRuleValues = (i) => setAnRules(rs => rs.map((r, idx) => idx === i ? { ...r, values: new Set() } : r));
   const removeRule = (i) => setAnRules(rs => rs.filter((_, idx) => idx !== i));
-  const addRule = () => setAnRules(rs => rs.length < 3 ? [...rs, { dim: "", values: new Set() }] : rs);
+  const addRule = () => setAnRules(rs => rs.length < MAX_AN_RULES ? [...rs, { dim: "", values: new Set() }] : rs);
 
   const toggleExclude = (dim, value) => {
     setAnExclusions(ex => {
@@ -1662,6 +1907,7 @@ function AnalysisTab({ ads, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, an
   return (
     <div>
       <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", marginBottom: 16 }}>
+        <ViewBar viewOf={viewOf} applyView={applyView} encodeView={encodeView} />
         <h3 style={{ fontSize: 13, fontWeight: 700, color: "#3a2429", margin: "0 0 10px" }}>Concept Analysis</h3>
 
         {/* Rule rows */}
@@ -1691,7 +1937,7 @@ function AnalysisTab({ ads, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, an
           ))}
         </div>
 
-        {anRules.length < 3 && (
+        {anRules.length < MAX_AN_RULES && (
           <button onClick={addRule} style={{ marginTop: 10, padding: "6px 12px", border: "1px dashed #D8C8BC", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#6B0010" }}>+ Add dimension</button>
         )}
 
@@ -1792,12 +2038,27 @@ function AnalysisTab({ ads, ALL_DIMS_LABELS, METRIC_MAP, anRules, setAnRules, an
           <SpendMix tree={analysisTree} dims={activeDims} labels={ALL_DIMS_LABELS} baselineNc={BASELINE.ncroas}
             onAds={(name, rows) => openModal(name, `${rows.length} creatives`, rows)} />
           <div style={{ background: "#fff", borderRadius: 10, padding: 16, border: "1px solid #E8DCD0", overflowX: "auto" }}>
-            <h3 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 4px", color: "#3a2429" }}>Breakdown</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3a2429" }}>Breakdown</h3>
+              {[["Tendency", tendency, setTendency, prevInfo ? `vs previous period ${prevInfo.label}${prevInfo.empty ? " (no data)" : ""}` : "pick a date range (spend in period) to compare"],
+                ["Timeline view", timeline, setTimeline, "expand any row to see it day by day"]].map(([label, on, set, hint]) => (
+                <label key={label} title={hint} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#3a2429", cursor: "pointer" }}>
+                  <span onClick={() => set(!on)} style={{ width: 30, height: 16, borderRadius: 8, background: on ? "#CC6138" : "#D8C8BC", position: "relative", transition: "background .15s" }}>
+                    <span style={{ position: "absolute", top: 2, left: on ? 16 : 2, width: 12, height: 12, borderRadius: 6, background: "#fff", transition: "left .15s" }} />
+                  </span>
+                  <span onClick={() => set(!on)}>{label}</span>
+                </label>
+              ))}
+              {tendency && prevInfo && <span style={{ fontSize: 11, color: "#b0978f" }}>change vs {prevInfo.label}</span>}
+              {tendency && !prevInfo && <span style={{ fontSize: 11, color: "#b91c1c" }}>pick a date range at the top to compare periods</span>}
+            </div>
             <p style={{ fontSize: 11, color: "#b0978f", margin: "0 0 10px" }}>Click a row to expand to the next dimension. Click a leaf row to see ad-level data.</p>
             <TreeTable
               nodes={analysisTree}
               dimLabels={activeDims.map(d => ALL_DIMS_LABELS[d])}
               onLeafClick={(node, path) => openModal(path.replaceAll("\u241F", " › "), `${node.agg.count} ads · Spend ${fmt(node.agg.spend)}`, node.ads)}
+              onDaily={(node, path) => openModal(path.replaceAll("\u241F", " › "), `${node.agg.count} ads · Spend ${fmt(node.agg.spend)}`, node.ads, "daily")}
+              tendency={tendency && !!prevInfo} prevMap={prevInfo?.map} timeline={timeline} days={days} range={range}
             />
           </div>
         </>
