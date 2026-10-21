@@ -115,7 +115,7 @@ def main():
                    sum(spend) AS spend, sum(order_revenue) AS rev, sum(orders_quantity) AS orders,
                    sum(new_customer_order_revenue) AS nc_rev, sum(new_customer_orders) AS nc_orders,
                    sum(new_visitors) AS nv, sum(unique_visitors) AS vis,
-                   sum(impressions) AS imps, sum(clicks) AS clk
+                   sum(impressions) AS imps, sum(outbound_clicks) AS clk
             FROM pixel_joined_tvf()
             WHERE {BASE_WHERE} AND event_date BETWEEN '{cs}' AND '{ce}'
             GROUP BY ad_id, d
@@ -129,7 +129,7 @@ def main():
                argMax(campaign_name, event_date) AS campaign, argMax(adset_name, event_date) AS adset,
                sum(spend) AS spend, sum(channel_reported_conversion_value) AS meta_rev,
                sum(channel_reported_conversions) AS meta_orders,
-               sum(impressions) AS imps, sum(clicks) AS clk
+               sum(impressions) AS imps, sum(outbound_clicks) AS clk
         FROM pixel_joined_tvf()
         WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}'
         GROUP BY ad_id HAVING spend > 0""", s, e, key)
