@@ -23,7 +23,9 @@ const hasSpend = (a) => (a.metrics.spend || 0) > 0;
 // window and old enough to have had a chance to scale. Carry-over ads (already
 // live before the window) and too-new ads are excluded. Older manifests carry
 // neither flag, so everything stays eligible there.
-const launchEligible = (a) => hasSpend(a) && !a.carry_over && a.mature !== false;
+// Every unique creative whose first spend day falls in a month counts as that
+// month's launch — recent launches included, even if they're still ramping.
+const launchEligible = (a) => hasSpend(a) && !a.carry_over;
 
 // Account-level ROAS / NCROAS, used as the bar for "efficient" wins and for
 // colouring ROAS badges relative to the account rather than to fixed cut-offs.
