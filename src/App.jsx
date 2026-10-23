@@ -1054,7 +1054,7 @@ export default function Dashboard() {
             </div>
 
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: "1px solid #E5E7EB" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#1F2937" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#9CA3AF" }}>· by first spend day; carry-over creatives excluded</span></h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 16px", color: "#1F2937" }}>Creatives Launched per Month <span style={{ fontWeight: 400, fontSize: 11, color: "#9CA3AF" }}>· by first spend day; versions &amp; copies of one creative counted once (incl. ads under 14 days, which Win Rate leaves out); carry-over creatives excluded</span></h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -1091,6 +1091,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: 11, color: "#1e3a5f", lineHeight: 1.5 }}>
                   <strong>How these are counted.</strong> A launch is a creative whose first-ever spend day falls inside the window and that is at least {manifest.mature_days ?? 14} days old,
                   so carry-over ads ({fmtNum(ads.filter(a => a.carry_over).length)}) and ads too new to judge ({fmtNum(ads.filter(a => !a.carry_over && a.mature === false).length)}) are left out.
+                  Versions (V1/V2/V3), hook variants and copies of the same creative count as <strong>one launch</strong> with their spend added together.
                   Thresholds are lifetime-in-window spend. <strong>Efficient</strong> = spent $1K+ and beat the account NCROAS ({(BASELINE.ncroas).toFixed(2)}x).
                 </div>
               </div>

@@ -42,6 +42,39 @@ TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
             "script", "format", "awareness_stage"]
 EXTRA = ["strategist", "editor", "hook"]
 COPY_RE = re.compile(r"\s*[-–]\s*Copy(\s*\d+)?\s*$", re.I)
+# "- Copy" also lands mid-name on renamed ads: "J70_V3 - Copy | Seamoss | …"
+COPY_MID_RE = re.compile(r"\s*[-–]\s*Copy(\s*\d+)?\s*(?=\|)", re.I)
+
+# Strategist tags. Older names carry the strategist only as a prefix/tag; the
+# team confirmed WLD / WNR / WNM are Walid's and YVS is Yves's. N<n> (Walid)
+# and NRYM (Yves) are taken from the renamed ads that also name the strategist.
+STRATEGIST_TAGS = {"WLD": "Walid", "WNR": "Walid", "WNM": "Walid", "YVS": "Yves", "NRYM": "Yves"}
+STRATEGIST_PREFIX_RE = re.compile(r"^(WLD|WNR|WNM|YVS|NRYM)(?=[\d_\s|]|$)|^(N)\d+(?=[_\s|]|$)", re.I)
+STRATEGIST_TOKEN_RE = re.compile(r"(?:^|_)(WLD|YVS|WNR|WNM)(?=_|$)", re.I)
+STRATEGIST_NAMES = {"walid": "Walid", "yves": "Yves", "wld": "Walid", "yvs": "Yves"}
+
+
+def strategist_of(name, tagged=None):
+    """Strategist from the ad name's own slot, else from the strategist's tag prefix."""
+    if tagged:
+        t = tagged.strip()
+        return STRATEGIST_NAMES.get(t.lower(), t)
+    n = (name or "").strip()
+    m = STRATEGIST_PREFIX_RE.match(n)
+    if m:
+        return "Walid" if m.group(2) else STRATEGIST_TAGS[m.group(1).upper()]
+    m = STRATEGIST_TOKEN_RE.search(n.split("|")[0])
+    return STRATEGIST_TAGS[m.group(1).upper()] if m else None
+
+
+VERSION_TAIL_RE = re.compile(r"([_\s-]+(V\d+[A-Z]?|H\d+|HOOK[A-Z]))+$", re.I)
+
+
+def creative_key(name, legacy_key=None):
+    """One key per creative: versions (V1/V2…), hooks and copies roll together."""
+    n = clean(name)
+    head = n.split("|")[0].strip() if "|" in n else (legacy_key or n)
+    return VERSION_TAIL_RE.sub("", head.strip()).strip(" _-").upper() or n.upper()
 
 
 def num(v):
@@ -53,16 +86,42 @@ def num(v):
 
 def clean(name):
     """Strip any number of trailing '- Copy' / '- Copy 2' suffixes."""
-    name = (name or "").strip()
+    name = COPY_MID_RE.sub(" ", (name or "").strip())
     while COPY_RE.search(name):
         name = COPY_RE.sub("", name).strip()
     return name
 
 
-def parse_pipe(name):
-    parts = [p.strip() for p in name.split("|")]
-    if len(parts) < 9:
+UNDERSCORE_AWARE = {"UA": "Unaware", "PA": "Problem Aware", "SA": "Solution Aware",
+                    "PRA": "Product Aware", "MA": "Most Aware"}
+UNDERSCORE_PRODUCT = {"SM": "Seamoss"}
+
+
+def parse_underscore(name):
+    """The same taxonomy written with '_' instead of '|':
+    95_SM_MUCUS_THROAT CLEARING_BOGO_MFB55+_<script>_BROLL + VO_MA_WLD_ASIM[_hook]_V3"""
+    n = clean(name)
+    if not re.match(r"^\d+_", n):
         return None
+    parts = [p.strip() for p in VERSION_TAIL_RE.sub("", n).split("_")]
+    if len(parts) < 10 or parts[8].upper() not in UNDERSCORE_AWARE:
+        return None
+    t = lambda v: v.title() if v and v.isupper() else v
+    out = {"creative_no": parts[0], "product": UNDERSCORE_PRODUCT.get(parts[1].upper(), parts[1]),
+           "angle": LEGACY_ANGLE.get(parts[2].upper()) or t(parts[2]), "sub_angle": t(parts[3]),
+           "concept": t(parts[4]), "icp": parts[5], "script": t(parts[6]), "format": t(parts[7]),
+           "awareness_stage": UNDERSCORE_AWARE[parts[8].upper()]}
+    rest = [p for p in parts[9:] if p and p.upper() != "NONE"]
+    out["strategist"] = STRATEGIST_TAGS.get(rest[0].upper(), rest[0]) if rest else None
+    out["editor"] = rest[1] if len(rest) > 1 else None
+    out["hook"] = rest[2] if len(rest) > 2 else None
+    return out
+
+
+def parse_pipe(name):
+    parts = [p.strip() for p in clean(name).split("|")]
+    if len(parts) < 9:
+        return parse_underscore(name)
     out = {k: (clean(parts[i]) if i == 0 else parts[i]) or None for i, k in enumerate(TAXONOMY)}
     for i, k in enumerate(EXTRA, start=9):
         out[k] = parts[i] if len(parts) > i and parts[i] else None
@@ -203,6 +262,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                     tags = {"angle": ang, "format": fmt.title() if fmt else None,
                             "creative_no": legacy.get("creative_no")}
                     status, convention = "Legacy name — angle/format inferred from name", "inferred"
+        tags["strategist"] = strategist_of(top["Ad name"], tags.get("strategist"))
         nr = parse_nr(key)
         if nr and not tags.get("format"):
             tags["format"] = nr["format"]
@@ -276,6 +336,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
         funnel = (nr and nr["funnel"]) or FUNNEL_OF.get(tags.get("awareness_stage"))
         rec = {
             "ad_name": key,
+            "creative_key": creative_key(key, parse_ad_name(key).get("dedup_key")),
             "new_ad_name": key if convention == "renamed" else None,
             **{k: tags.get(k) for k in TAXONOMY + EXTRA},
             "funnel": funnel,
@@ -296,6 +357,18 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
             "preview_link": f"https://business.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_ids[0]}",
         }
         ads.append(rec)
+
+    # One spelling per value: names written in caps or with different spacing
+    # ("BROLL + VO", "Broll + Vo") take the spelling with the most spend.
+    for k in TAXONOMY[1:] + EXTRA:
+        best = defaultdict(Counter)
+        for a in ads:
+            if a.get(k):
+                best[re.sub(r"\W+", "", a[k].lower())][a[k]] += a["metrics"]["spend"] + (1e9 if a["convention"] == "renamed" else 0)
+        canon = {sk: c.most_common(1)[0][0] for sk, c in best.items()}
+        for a in ads:
+            if a.get(k):
+                a[k] = canon[re.sub(r"\W+", "", a[k].lower())]
 
     # Launch status relative to the reporting window: carry-over creatives were
     # already spending before it started; immature ones launched too recently to

@@ -100,7 +100,7 @@ export function groupBy(ads, dim) {
 // recorded spend, falling back to a date parsed out of the campaign name).
 export function monthly(ads) {
   const buckets = new Map();
-  for (const ad of ads) {
+  for (const ad of consolidate(ads)) {
     // Carry-over creatives launched before the window — their in-window spend
     // would land in old, mostly-empty months, so they are left out here.
     if (ad.carry_over) continue;
@@ -129,10 +129,34 @@ export function monthly(ads) {
     .sort((a, b) => a.month.localeCompare(b.month));
 }
 
+// One record per creative: versions (V1/V2…), hook variants and copies of the
+// same creative share a creative_key, so a launch is counted once with its
+// spend summed. The launch date is the earliest version's.
+export function consolidate(ads) {
+  const g = new Map();
+  for (const a of ads) {
+    const k = a.creative_key || a.ad_name;
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push(a);
+  }
+  const out = [];
+  for (const vs of g.values()) {
+    if (vs.length === 1) { out.push({ ...vs[0], variants: vs }); continue; }
+    const top = vs.reduce((x, y) => ((y.metrics.spend || 0) > (x.metrics.spend || 0) ? y : x));
+    const sum = (k) => vs.reduce((t, v) => t + (v.metrics[k] || 0), 0);
+    const spend = sum("spend"), rev = sum("rev"), nc = sum("nc_rev"), ncT = sum("nc_txns");
+    const first = vs.filter((v) => v.date).sort((x, y) => (x.date < y.date ? -1 : 1))[0] || top;
+    out.push({ ...top, variants: vs, date: first.date, carry_over: !!first.carry_over, mature: first.mature,
+      metrics: { ...top.metrics, spend, rev, nc_rev: nc, nc_txns: ncT, txns: sum("txns"),
+        roas: spend ? rev / spend : 0, ncroas: spend ? nc / spend : null, nccpa: ncT ? spend / ncT : null } });
+  }
+  return out;
+}
+
 // Win rate: for each launch month, count creatives by spend threshold.
 // Denominators exclude never-spent creatives.
 export function winRate(ads, formatFilter = "blended", strategistFilter = "all") {
-  let filtered = ads.filter(launchEligible);
+  let filtered = consolidate(ads).filter(launchEligible);
   if (formatFilter !== "blended") {
     filtered = filtered.filter((a) => a.format === formatFilter);
   }
@@ -181,7 +205,7 @@ export function winRate(ads, formatFilter = "blended", strategistFilter = "all")
 // Convert a groupBy result into the breakdown-table row shape.
 export function toBreakdownRows(groups) {
   return groups.map((g) => {
-    const spenders = g.ads.filter(launchEligible);
+    const spenders = consolidate(g.ads).filter(launchEligible);
     const wr = (min) =>
       spenders.length
         ? (spenders.filter((a) => (a.metrics.spend || 0) >= min).length /
