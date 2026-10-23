@@ -32,13 +32,14 @@ const plus6 = (iso) => {
   return d.toISOString().slice(0, 10);
 };
 
-const empty = () => ({ spend: 0, rev: 0, nc_rev: 0, clicks: 0, nv: 0, vis: 0, n: 0 });
-const add = (t, s) => { t.spend += s.spend; t.rev += s.rev; t.nc_rev += s.nc_rev; t.clicks += s.clicks; t.nv += s.nv; t.vis += s.vis; t.n += 1; };
+const empty = () => ({ spend: 0, rev: 0, nc_rev: 0, nc_ord: 0, clicks: 0, nv: 0, vis: 0, n: 0 });
+const add = (t, s) => { t.spend += s.spend; t.rev += s.rev; t.nc_rev += s.nc_rev; t.nc_ord += s.nc_ord; t.clicks += s.clicks; t.nv += s.nv; t.vis += s.vis; t.n += 1; };
 const derive = (t, total) => ({
   ...t,
   share: total ? (t.spend / total) * 100 : null,
   ncroas: t.spend ? t.nc_rev / t.spend : null,
   roas: t.spend ? t.rev / t.spend : null,
+  nccpa: t.nc_ord ? t.spend / t.nc_ord : null,
   cpc: t.clicks ? t.spend / t.clicks : null,
   nvp: t.vis ? (t.nv / t.vis) * 100 : null,
 });
@@ -71,8 +72,8 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
         if (r[0] < lo || r[0] > hi) continue;
         const day = days[r[0]];
         const p = rows === "Week" ? mondayOf(day) : day;
-        const t = own.get(p) || { spend: 0, rev: 0, nc_rev: 0, clicks: 0, nv: 0, vis: 0 };
-        t.spend += r[1]; t.rev += r[2]; t.nc_rev += r[4]; t.nv += r[6]; t.vis += r[7]; t.clicks += r[9];
+        const t = own.get(p) || { spend: 0, rev: 0, nc_rev: 0, nc_ord: 0, clicks: 0, nv: 0, vis: 0 };
+        t.spend += r[1]; t.rev += r[2]; t.nc_rev += r[4]; t.nc_ord += r[5]; t.nv += r[6]; t.vis += r[7]; t.clicks += r[9];
         own.set(p, t);
       }
       for (const [p, t] of own) {
@@ -85,7 +86,7 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
     const tot = { all: empty(), noData: empty(), ...Object.fromEntries(BUCKETS.map(b => [b.key, empty()])) };
     const list = [...per.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([p, P]) => {
       for (const k of Object.keys(tot)) {
-        tot[k].spend += P[k].spend; tot[k].rev += P[k].rev; tot[k].nc_rev += P[k].nc_rev;
+        tot[k].spend += P[k].spend; tot[k].rev += P[k].rev; tot[k].nc_rev += P[k].nc_rev; tot[k].nc_ord += P[k].nc_ord;
         tot[k].clicks += P[k].clicks; tot[k].nv += P[k].nv; tot[k].vis += P[k].vis; tot[k].n += P[k].n;
       }
       const out = { period: p, label: rows === "Week" ? `${p} to ${plus6(p) > last ? last : plus6(p)}` : p };
@@ -132,7 +133,7 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderTop: "3px solid #6B7280", borderRadius: 10, padding: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7280", letterSpacing: 0.4 }}>ALL CREATIVES</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#1F2937", margin: "4px 0" }}>{money(totals.all.spend)}</div>
-            <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: "#1F2937" }}>{x2(totals.all.ncroas)}</b> · Outbound CPC {cpc(totals.all.cpc)}</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: "#1F2937" }}>{x2(totals.all.ncroas)}</b> · NC CPA <b style={{ color: "#1F2937" }}>{money(totals.all.nccpa)}</b> · Outbound CPC {cpc(totals.all.cpc)}</div>
             <div style={{ fontSize: 12, color: "#6B7280" }}>NVP <b style={{ color: "#1F2937" }}>{pct1(totals.all.nvp)}</b>{totals.noData.spend > 0 && ` · ${money(totals.noData.spend)} no visitor data`}</div>
           </div>
           {BUCKETS.map(b => {
@@ -142,7 +143,7 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
                 <div style={{ fontSize: 10, fontWeight: 700, color: b.color, letterSpacing: 0.4 }}>{b.label.toUpperCase()}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#1F2937", margin: "4px 0" }}>{money(t.spend)}</div>
                 <div style={{ fontSize: 12, color: "#6B7280" }}>{pct1(t.share)} of spend · Outbound CPC {cpc(t.cpc)}</div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: ncColor(t.ncroas) }}>{x2(t.ncroas)}</b> · {roasLabel} {x2(t.roas)}</div>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>NC ROAS <b style={{ color: ncColor(t.ncroas) }}>{x2(t.ncroas)}</b> · NC CPA <b style={{ color: "#1F2937" }}>{money(t.nccpa)}</b> · {roasLabel} {x2(t.roas)}</div>
               </div>
             );
           })}
@@ -158,15 +159,16 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
             <thead>
               <tr>
                 <th style={{ ...th, textAlign: "left" }} rowSpan={2}>{rows}</th>
-                <th style={{ ...th, borderLeft: "1px solid #E5E7EB" }} colSpan={2}>Total</th>
+                <th style={{ ...th, borderLeft: "1px solid #E5E7EB" }} colSpan={3}>Total</th>
                 {BUCKETS.map(b => (
-                  <th key={b.key} colSpan={4} style={{ ...th, textAlign: "center", background: b.color, color: "#fff", borderLeft: "2px solid #fff" }}>{b.label}</th>
+                  <th key={b.key} colSpan={5} style={{ ...th, textAlign: "center", background: b.color, color: "#fff", borderLeft: "2px solid #fff" }}>{b.label}</th>
                 ))}
               </tr>
               <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
                 <th style={{ ...th, borderLeft: "1px solid #E5E7EB" }}>Spend</th>
                 <th style={th}>NC ROAS</th>
-                {BUCKETS.map(b => ["Spend", "% tot", "NC ROAS", "CPC (out)"].map((h, i) => (
+                <th style={th}>NC CPA</th>
+                {BUCKETS.map(b => ["Spend", "% tot", "NC ROAS", "NC CPA", "CPC (out)"].map((h, i) => (
                   <th key={b.key + h} style={{ ...th, background: b.bg, borderLeft: i === 0 ? "2px solid #fff" : undefined }}>{h}</th>
                 )))}
               </tr>
@@ -177,6 +179,7 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
                   <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#1F2937" }}>{p.label}</td>
                   <td style={{ ...td, borderLeft: "1px solid #E5E7EB", fontWeight: 600 }}>{money(p.all.spend)}</td>
                   <td style={{ ...td, color: ncColor(p.all.ncroas), fontWeight: 600 }}>{x2(p.all.ncroas)}</td>
+                  <td style={td}>{money(p.all.nccpa)}</td>
                   {BUCKETS.map(b => {
                     const t = p[b.key];
                     const has = t.spend > 0;
@@ -184,6 +187,7 @@ export default function NvpLedger({ ads, days, baselineNc = 0, roasLabel = "ROAS
                       <td key={b.key + "s"} style={{ ...td, background: b.bg, borderLeft: "2px solid #fff", fontWeight: 600 }}>{has ? money(t.spend) : "—"}</td>,
                       <td key={b.key + "p"} style={{ ...td, background: b.bg, color: "#6B7280" }}>{has ? pct1(t.share) : "—"}</td>,
                       <td key={b.key + "n"} style={{ ...td, background: b.bg, color: ncColor(t.ncroas), fontWeight: 600 }}>{has ? x2(t.ncroas) : "—"}</td>,
+                      <td key={b.key + "a"} style={{ ...td, background: b.bg }}>{has ? money(t.nccpa) : "—"}</td>,
                       <td key={b.key + "c"} style={{ ...td, background: b.bg, color: "#6B7280" }}>{has ? cpc(t.cpc) : "—"}</td>,
                     ];
                   })}

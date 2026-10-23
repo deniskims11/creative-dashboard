@@ -75,6 +75,10 @@ VERSION_TAIL_RE = re.compile(r"([_\s-]+(V\d+[A-Z]?|H\d+|HOOK[A-Z]))+$", re.I)
 def creative_key(name, legacy_key=None):
     """One key per creative: versions (V1/V2…), hooks and copies roll together."""
     n = clean(name)
+    if "|" not in n and n.count(SPACED_SEP) >= 8:
+        # Agency " _ " names restart their numbers per batch (001, 002…), so the
+        # creative is identified by its taxonomy rather than the number.
+        return "|".join(p.strip().upper() for p in n.split(SPACED_SEP)[1:9])
     head = n.split("|")[0].strip() if "|" in n else (legacy_key or n)
     return VERSION_TAIL_RE.sub("", head.strip()).strip(" _-").upper() or n.upper()
 
@@ -120,8 +124,16 @@ def parse_underscore(name):
     return out
 
 
+SPACED_SEP = " _ "  # "V3 _ Seamoss _ Gut _ Bloating _ …": the pipe taxonomy typed with " _ "
+
+
 def parse_pipe(name):
-    parts = [p.strip() for p in clean(name).split("|")]
+    n = clean(name)
+    parts = [p.strip() for p in n.split("|")]
+    if len(parts) < 9 and n.count(SPACED_SEP) >= 8:
+        parts = [p.strip() for p in n.split(SPACED_SEP)]
+        if re.fullmatch(r"V\d+", parts[0], re.I):  # leading slot is a version, not an ad number
+            parts[0] = ""
     if len(parts) < 9:
         return parse_underscore(name)
     out = {k: (clean(parts[i]) if i == 0 else parts[i]) or None for i, k in enumerate(TAXONOMY)}
@@ -259,6 +271,8 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                 status, convention = "Legacy name — untagged", "untagged"
                 legacy = parse_ad_name(top["Ad name"], top.get("Campaign name"))
                 ang = LEGACY_ANGLE.get(legacy.get("angle") or "", None)
+                if not ang and re.search(r"(?:^|_)GUT(?:_|$)", top["Ad name"], re.I):
+                    ang = "Gut"
                 fmt = legacy.get("format")
                 if ang or fmt:
                     tags = {"angle": ang, "format": fmt.title() if fmt else None,
