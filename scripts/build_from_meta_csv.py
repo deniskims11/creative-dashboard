@@ -46,10 +46,12 @@ COPY_RE = re.compile(r"\s*[-–]\s*Copy(\s*\d+)?\s*$", re.I)
 COPY_MID_RE = re.compile(r"\s*[-–]\s*Copy(\s*\d+)?\s*(?=\|)", re.I)
 
 # Strategist tags. Older names carry the strategist only as a prefix/tag; the
-# team confirmed WLD / WNR / WNM are Walid's and YVS is Yves's. N<n> (Walid)
+# team confirmed WLD / WNR / WNM are Walid's; YVS, NRJ, T and (NR)BP are Yves's. N<n> (Walid)
 # and NRYM (Yves) are taken from the renamed ads that also name the strategist.
-STRATEGIST_TAGS = {"WLD": "Walid", "WNR": "Walid", "WNM": "Walid", "YVS": "Yves", "NRYM": "Yves"}
-STRATEGIST_PREFIX_RE = re.compile(r"^(WLD|WNR|WNM|YVS|NRYM)(?=[\d_\s|]|$)|^(N)\d+(?=[_\s|]|$)", re.I)
+STRATEGIST_TAGS = {"WLD": "Walid", "WNR": "Walid", "WNM": "Walid", "YVS": "Yves", "NRYM": "Yves",
+                   "NRJ": "Yves", "NRBP": "Yves", "BP": "Yves", "T": "Yves"}
+STRATEGIST_PREFIX_RE = re.compile(
+    r"^(WLD|WNR|WNM|YVS|NRYM|NRJ|NRBP)(?=[\d_\s|]|$)|^(BP|T)(?=_?\d)|^(N)\d+(?=[_\s|]|$)", re.I)
 STRATEGIST_TOKEN_RE = re.compile(r"(?:^|_)(WLD|YVS|WNR|WNM)(?=_|$)", re.I)
 STRATEGIST_NAMES = {"walid": "Walid", "yves": "Yves", "wld": "Walid", "yvs": "Yves"}
 
@@ -62,7 +64,7 @@ def strategist_of(name, tagged=None):
     n = (name or "").strip()
     m = STRATEGIST_PREFIX_RE.match(n)
     if m:
-        return "Walid" if m.group(2) else STRATEGIST_TAGS[m.group(1).upper()]
+        return "Walid" if m.group(3) else STRATEGIST_TAGS[(m.group(1) or m.group(2)).upper()]
     m = STRATEGIST_TOKEN_RE.search(n.split("|")[0])
     return STRATEGIST_TAGS[m.group(1).upper()] if m else None
 
