@@ -1944,6 +1944,16 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
   // Dims actually used (non-empty)
   const activeDims = anRules.map(r => r.dim).filter(Boolean);
   const usedDims = new Set(activeDims);
+  // Each row's value list only shows values found in ads that pass the rows above it
+  // (e.g. pick Angle = Joint and Sub-Angle only lists Joint sub-angles).
+  const scopedAds = useMemo(() => {
+    const out = []; let cur = ads;
+    for (const r of anRules) {
+      out.push(cur);
+      if (r.dim && r.values?.size) cur = cur.filter(a => r.values.has(a[r.dim] ?? "(untagged)"));
+    }
+    return out;
+  }, [ads, anRules]);
 
   return (
     <div>
@@ -1966,7 +1976,7 @@ function AnalysisTab({ ads, prevInfo, days, range, compareOn, viewOf, applyView,
               </select>
               <span style={{ color: "#9CA3AF" }}>›</span>
               <ValuePicker
-                ads={ads}
+                ads={scopedAds[i]}
                 dim={rule.dim}
                 selected={rule.values}
                 onToggle={v => toggleRuleValue(i, v)}
