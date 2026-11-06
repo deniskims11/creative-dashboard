@@ -153,15 +153,15 @@ def main():
         GROUP BY account_id ORDER BY spend DESC""", s, e, key)
     seen = {str(r["account_id"]).removeprefix("act_"): r for r in acc}
     print("  spend by ad account (Triple Whale):")
-    for a in ACCOUNT_IDS:
-        r = seen.get(a)
-        print(f"    act_{a}: " + (f"${f(r['spend']):,.0f}, last day {str(r['last_day'])[:10]}" if r else "NO DATA in Triple Whale"))
-    for a, r in seen.items():
-        if a not in ACCOUNT_IDS:
-            print(f"    act_{a} (not in ACCOUNT_IDS): ${f(r['spend']):,.0f}")
+    for acc_id in ACCOUNT_IDS:
+        r = seen.get(acc_id)
+        print(f"    act_{acc_id}: " + (f"${f(r['spend']):,.0f}, last day {str(r['last_day'])[:10]}" if r else "NO DATA in Triple Whale"))
+    for acc_id, r in seen.items():
+        if acc_id not in ACCOUNT_IDS:
+            print(f"    act_{acc_id} (not in ACCOUNT_IDS): ${f(r['spend']):,.0f}")
     with open(out / "tw_accounts.json", "w") as fh:
-        json.dump({a: ({"spend": round(f(seen[a]["spend"]), 2), "last_day": str(seen[a]["last_day"])[:10]}
-                       if a in seen else None) for a in ACCOUNT_IDS}, fh)
+        json.dump({k: ({"spend": round(f(seen[k]["spend"]), 2), "last_day": str(seen[k]["last_day"])[:10]}
+                       if k in seen else None) for k in ACCOUNT_IDS}, fh)
 
     # 3. Lifetime first spend day + thumbnail for every ad in the window.
     launch = sql(f"""
