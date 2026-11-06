@@ -363,8 +363,8 @@ function adsManagerUrl(account, adIds) {
   const ids = (adIds || []).filter(Boolean);
   if (!ids.length) return null;
   const act = String(account || "act_944402037249956").replace(/^act_/, "");
-  const filter = `SEARCH_BY_ADGROUP_IDS-STRING_SET\u001EANY\u001E${JSON.stringify(ids.slice(0, 50))}`;
-  return `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&filter_set=${encodeURIComponent(filter)}`;
+  // The ad's edit view shows its preview and also opens archived/deleted ads.
+  return `https://adsmanager.facebook.com/adsmanager/manage/ads/edit/standalone?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&selected_ad_ids=${ids[0]}`;
 }
 const pct2 = v => v == null ? "—" : `${v.toFixed(2)}%`;
 

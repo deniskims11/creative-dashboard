@@ -48,9 +48,9 @@ def ads_manager_url(account, ad_id):
         return f"https://adsmanager.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_id}"
     # All six NR accounts sit in the Natural Rems business portfolio; passing it
     # keeps Ads Manager from opening the viewer's personal business instead.
-    return (f"https://adsmanager.facebook.com/adsmanager/manage/ads?act={act}"
-            f"&business_id={NR_BUSINESS}&global_scope_id={NR_BUSINESS}&filter_set="
-            + quote(f'SEARCH_BY_ADGROUP_IDS-STRING_SET\x1eANY\x1e["{ad_id}"]', safe=""))
+    # The ad's edit view shows its preview and also opens archived/deleted ads.
+    return (f"https://adsmanager.facebook.com/adsmanager/manage/ads/edit/standalone?act={act}"
+            f"&business_id={NR_BUSINESS}&global_scope_id={NR_BUSINESS}&selected_ad_ids={ad_id}")
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
 TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
             "script", "format", "awareness_stage"]
