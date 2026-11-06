@@ -363,7 +363,7 @@ function adsManagerUrl(account, adIds) {
   const ids = (adIds || []).filter(Boolean);
   if (!ids.length) return null;
   const act = String(account || "act_944402037249956").replace(/^act_/, "");
-  const filter = `SEARCH_BY_AD-GROUP_IDS-STRING_SET\u001EANY\u001E${JSON.stringify(ids.slice(0, 50))}`;
+  const filter = `SEARCH_BY_ADGROUP_IDS-STRING_SET\u001EANY\u001E${JSON.stringify(ids.slice(0, 50))}`;
   return `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&filter_set=${encodeURIComponent(filter)}`;
 }
 const pct2 = v => v == null ? "—" : `${v.toFixed(2)}%`;

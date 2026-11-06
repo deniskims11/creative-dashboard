@@ -50,7 +50,7 @@ def ads_manager_url(account, ad_id):
     # keeps Ads Manager from opening the viewer's personal business instead.
     return (f"https://adsmanager.facebook.com/adsmanager/manage/ads?act={act}"
             f"&business_id={NR_BUSINESS}&global_scope_id={NR_BUSINESS}&filter_set="
-            + quote(f'SEARCH_BY_AD-GROUP_IDS-STRING_SET\x1eANY\x1e["{ad_id}"]', safe=""))
+            + quote(f'SEARCH_BY_ADGROUP_IDS-STRING_SET\x1eANY\x1e["{ad_id}"]', safe=""))
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
 TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
             "script", "format", "awareness_stage"]
