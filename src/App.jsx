@@ -284,7 +284,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
               {sortedAds.slice(0, 500).map((a, i) => {
                 const m = a.metrics;
                 const adIds = a.meta_ad_ids || [];
-                const managerUrl = adIds[0] ? `https://business.facebook.com/adsmanager/manage/ads?selected_ad_ids=${adIds[0]}` : null;
+                const managerUrl = adsManagerUrl(a.ad_account, adIds);
                 const previewUrl = a.preview_link || managerUrl;
                 const previewTitle = a.preview_link
                   ? `Preview the creative (no login). Meta ad ID: ${adIds[0] || "?"}`
@@ -355,6 +355,17 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
 let HAS_NC = true;
 // Set from the manifest: true when per-ad visitor counts are present.
 let HAS_NV = false;
+
+// Ads Manager link that opens the ad inside its own ad account and the Natural Rems
+// business, so viewers with several businesses don't land in their personal one.
+const NR_BUSINESS = "1824899207956323";
+function adsManagerUrl(account, adIds) {
+  const ids = (adIds || []).filter(Boolean);
+  if (!ids.length) return null;
+  const act = String(account || "act_944402037249956").replace(/^act_/, "");
+  const filter = `SEARCH_BY_AD-GROUP_IDS-STRING_SET\u001EANY\u001E${JSON.stringify(ids.slice(0, 50))}`;
+  return `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&filter_set=${encodeURIComponent(filter)}`;
+}
 const pct2 = v => v == null ? "—" : `${v.toFixed(2)}%`;
 
 // Global "compare with previous period": App fills CMP each render; tables read it.

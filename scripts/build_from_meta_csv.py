@@ -37,6 +37,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from parse_ad_name import parse_ad_name, parse_campaign
 
 ACCOUNT = "act_944402037249956"
+NR_BUSINESS = "1824899207956323"  # Natural Rems business portfolio
 
 
 def ads_manager_url(account, ad_id):
@@ -45,7 +46,10 @@ def ads_manager_url(account, ad_id):
     act = str(account or "").removeprefix("act_")
     if not act:
         return f"https://adsmanager.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_id}"
-    return (f"https://adsmanager.facebook.com/adsmanager/manage/ads?act={act}&filter_set="
+    # All six NR accounts sit in the Natural Rems business portfolio; passing it
+    # keeps Ads Manager from opening the viewer's personal business instead.
+    return (f"https://adsmanager.facebook.com/adsmanager/manage/ads?act={act}"
+            f"&business_id={NR_BUSINESS}&global_scope_id={NR_BUSINESS}&filter_set="
             + quote(f'SEARCH_BY_AD-GROUP_IDS-STRING_SET\x1eANY\x1e["{ad_id}"]', safe=""))
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
 TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
