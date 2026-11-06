@@ -36,14 +36,22 @@ from urllib.error import HTTPError
 
 API = "https://api.triplewhale.com/api/v2/orcabase/api/sql"
 SHOP = "18b070.myshopify.com"
-ACCOUNT_ID = "944402037249956"
+# Every Meta ad account in the Natural Rems business portfolio (Nov 2026).
+ACCOUNT_IDS = [
+    "944402037249956",   # Natural Rems Account
+    "3659143914352798",  # Natural Rems - Secondary
+    "2022350858356100",  # 0402 - 70481 - 0003 - DYT
+    "2352415718879710",  # CK_FACEBOOK_CXD-35...
+    "1931848434461897",  # INT_DR_FACEBOOK_CX... (O X DR 34)
+    "1142963034834179",  # INT_DR_FACEBOOK_CX... (O X DR 37)
+]
 LAUNCH_LOOKBACK = "2024-01-01"   # far enough back to find any live ad's first spend day
 CHUNK_DAYS = 7
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 BASE_WHERE = (
     "channel = 'facebook-ads' AND model = 'Triple Attribution' AND attribution_window = '7_days' "
-    f"AND account_id IN ('{ACCOUNT_ID}', 'act_{ACCOUNT_ID}')"
+    "AND account_id IN (" + ", ".join(f"'{a}', 'act_{a}'" for a in ACCOUNT_IDS) + ")"
 )
 
 
@@ -125,7 +133,7 @@ def main():
 
     # 2. Names / campaign / ad set and Meta-reported conversions for the window.
     meta = sql(f"""
-        SELECT ad_id, argMax(ad_name, event_date) AS ad_name,
+        SELECT ad_id, argMax(ad_name, event_date) AS ad_name, argMax(account_id, event_date) AS account,
                argMax(campaign_name, event_date) AS campaign, argMax(adset_name, event_date) AS adset,
                sum(spend) AS spend, sum(channel_reported_conversion_value) AS meta_rev,
                sum(channel_reported_conversions) AS meta_orders,
@@ -134,6 +142,26 @@ def main():
         WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}'
         GROUP BY ad_id HAVING spend > 0""", s, e, key)
     print(f"  ads: {len(meta)}")
+
+    # Which ad accounts Triple Whale actually has spend for (all of the shop's
+    # Facebook accounts, not only ours), so a missing connection shows up in the log.
+    acc = sql(f"""
+        SELECT account_id, sum(spend) AS spend, max(event_date) AS last_day
+        FROM pixel_joined_tvf()
+        WHERE channel = 'facebook-ads' AND model = 'Triple Attribution' AND attribution_window = '7_days'
+          AND event_date BETWEEN '{s}' AND '{e}'
+        GROUP BY account_id ORDER BY spend DESC""", s, e, key)
+    seen = {str(r["account_id"]).removeprefix("act_"): r for r in acc}
+    print("  spend by ad account (Triple Whale):")
+    for a in ACCOUNT_IDS:
+        r = seen.get(a)
+        print(f"    act_{a}: " + (f"${f(r['spend']):,.0f}, last day {str(r['last_day'])[:10]}" if r else "NO DATA in Triple Whale"))
+    for a, r in seen.items():
+        if a not in ACCOUNT_IDS:
+            print(f"    act_{a} (not in ACCOUNT_IDS): ${f(r['spend']):,.0f}")
+    with open(out / "tw_accounts.json", "w") as fh:
+        json.dump({a: ({"spend": round(f(seen[a]["spend"]), 2), "last_day": str(seen[a]["last_day"])[:10]}
+                       if a in seen else None) for a in ACCOUNT_IDS}, fh)
 
     # 3. Lifetime first spend day + thumbnail for every ad in the window.
     launch = sql(f"""
@@ -197,11 +225,12 @@ def main():
         w = csv.writer(fh)
         w.writerow(["Reporting starts", "Reporting ends", "Ad name", "Attribution setting",
                     "Amount spent (USD)", "Impressions", "Link clicks", "Purchases",
-                    "Purchases conversion value", "Ad ID", "Campaign name", "Ad set name"])
+                    "Purchases conversion value", "Ad ID", "Campaign name", "Ad set name", "Account ID"])
         for r in meta:
             w.writerow([s, e, r.get("ad_name") or str(r["ad_id"]), "Meta-reported (via Triple Whale)",
                         fmt(r["spend"]), fmt(r["imps"]), fmt(r["clk"]), fmt(r["meta_orders"]),
-                        fmt(r["meta_rev"]), str(r["ad_id"]), r.get("campaign") or "", r.get("adset") or ""])
+                        fmt(r["meta_rev"]), str(r["ad_id"]), r.get("campaign") or "", r.get("adset") or "",
+                        "act_" + str(r.get("account") or "").removeprefix("act_")])
 
     tot = sum(f(r["spend"]) for r in daily)
     print(f"spend ${tot:,.0f} across {len(by_ad)} ads, {len(daily)} ad-days")

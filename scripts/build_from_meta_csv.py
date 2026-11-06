@@ -37,6 +37,16 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from parse_ad_name import parse_ad_name, parse_campaign
 
 ACCOUNT = "act_944402037249956"
+
+
+def ads_manager_url(account, ad_id):
+    """Ads Manager link that opens the ad inside its own ad account."""
+    from urllib.parse import quote
+    act = str(account or "").removeprefix("act_")
+    if not act:
+        return f"https://adsmanager.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_id}"
+    return (f"https://adsmanager.facebook.com/adsmanager/manage/ads?act={act}&filter_set="
+            + quote(f'SEARCH_BY_AD-GROUP_IDS-STRING_SET\x1eANY\x1e["{ad_id}"]', safe=""))
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
 TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
             "script", "format", "awareness_stage"]
@@ -350,6 +360,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
 
         tags["awareness_stage"] = norm_awareness(tags.get("awareness_stage"))
         funnel = (nr and nr["funnel"]) or FUNNEL_OF.get(tags.get("awareness_stage"))
+        acct = (top.get("Account ID") or ACCOUNT).strip() or ACCOUNT
         rec = {
             "ad_name": key,
             "creative_key": creative_key(key, parse_ad_name(key).get("dedup_key")),
@@ -368,9 +379,10 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
             "wk": [[k, round(v[0], 2), round(v[1], 2), round(v[2], 2), v[3]] for k, v in sorted(wk.items())],
             # [dayIdx, spend, rev, orders, nc_rev, nc_orders, new_visitors, visitors, impressions, clicks]
             "dd": [[k] + [round(x, 2) for x in v] for k, v in sorted(dd.items())],
-            "thumbnail_candidates": ([image] if image else []) + [f"{THUMB_CDN}/{ACCOUNT}/{i}.jpg" for i in ad_ids[:2]],
-            "thumbnail_url": image or f"{THUMB_CDN}/{ACCOUNT}/{ad_ids[0]}.jpg",
-            "preview_link": f"https://business.facebook.com/adsmanager/manage/ads?selected_ad_ids={ad_ids[0]}",
+            "ad_account": acct,
+            "thumbnail_candidates": ([image] if image else []) + [f"{THUMB_CDN}/{acct}/{i}.jpg" for i in ad_ids[:2]],
+            "thumbnail_url": image or f"{THUMB_CDN}/{acct}/{ad_ids[0]}.jpg",
+            "preview_link": ads_manager_url(acct, ad_ids[0]),
         }
         ads.append(rec)
 
@@ -410,6 +422,9 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
     s_tag = sum(a["metrics"]["spend"] for a in ads if a["convention"] != "untagged")
     tot_rev = sum(a["metrics"]["rev"] for a in ads)
     tot_nc = sum(a["metrics"]["nc_rev"] for a in ads)
+    acct_spend = {}
+    for a in ads:
+        acct_spend[a["ad_account"]] = round(acct_spend.get(a["ad_account"], 0) + (a["metrics"].get("spend") or 0), 2)
     return {
         "weeks": weeks,
         "days": days,
@@ -425,9 +440,10 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                          "window": "7 days"} if tw else
                         {"primary": f"Meta Ads Manager · {attribution}",
                          "secondary": None, "window": attribution}),
-        "ad_accounts": [ACCOUNT],
+        "ad_accounts": sorted({a["ad_account"] for a in ads}),
+        "account_spend": acct_spend,
         "scope_note": (
-            f"Every ad that spent in {ACCOUNT}, {starts[0]} → {ends[-1]}, rolled up to "
+            f"Every ad that spent in the Natural Rems ad accounts ({len({a['ad_account'] for a in ads})} with spend), {starts[0]} → {ends[-1]}, rolled up to "
             f"{len(ads):,} creatives. {n_ren:,} carry the new taxonomy in their name "
             f"({s_ren/tot:.0%} of spend); legacy names are tagged from the MASTER "
             "workbook or, failing that, angle/format are inferred from the old name "

@@ -944,7 +944,7 @@ export default function Dashboard() {
         {manifest.scope_note && (
           <details style={{ marginBottom: 16, padding: "10px 14px", background: "#fff", border: "1px solid var(--nr-line)", borderRadius: 10 }}>
             <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--nr-green)", cursor: "pointer" }}>
-              About this data <span style={{ fontWeight: 400, color: "var(--nr-muted)" }}>· {manifest.attribution?.primary ?? "—"} · act_944402037249956</span>
+              About this data <span style={{ fontWeight: 400, color: "var(--nr-muted)" }}>· {manifest.attribution?.primary ?? "—"} · {(manifest.ad_accounts || []).length || 1} ad account{(manifest.ad_accounts || []).length === 1 ? "" : "s"}{manifest.account_spend ? ": " + Object.entries(manifest.account_spend).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${fmt(v)}`).join(" · ") : ""}</span>
             </summary>
             <div style={{ fontSize: 11, color: "var(--nr-muted)", lineHeight: 1.6, marginTop: 8 }}>{manifest.scope_note}</div>
           </details>
