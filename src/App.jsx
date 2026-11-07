@@ -1,6 +1,8 @@
 import DailyView, { dailyRows } from "./Daily.jsx";
 import SpendMix from "./SpendMix.jsx";
 import NvpLedger from "./NvpLedger.jsx";
+import Attribution from "./Attribution.jsx";
+import { openExternal, adsManagerUrl } from "./links.js";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -19,7 +21,7 @@ const fmtPct = (n) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
 const MAX_AN_RULES = 8;
 const DEPTH_BG = ["transparent", "#F9FAFB", "#F3F4F6", "#F3F4F6", "#E5E7EB"];
 const depthBg = (d) => DEPTH_BG[Math.min(d, DEPTH_BG.length - 1)];
-const TABS = ["Overview", "Win Rate", "Angles", "Sub-Angles", "Concepts", "ICP", "Formats", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
+const TABS = ["Overview", "Attribution", "Win Rate", "Angles", "Sub-Angles", "Concepts", "ICP", "Formats", "NVP Buckets", "Breakdowns", "Analysis", "Data Clean Up"];
 const THRESHOLDS = ["$1K", "$5K", "$15K", "$25K", "$50K", "$100K", "$150K+"];
 
 // Coloured relative to the account baseline (set from the manifest), so the
@@ -296,7 +298,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                       {a.ad_name}</td>
                     <td style={{ ...td, textAlign: "center", width: 72 }}>
                       {a.thumbnail_url && previewUrl ? (
-                        <a href={previewUrl} target="_blank" rel="noopener noreferrer" title={previewTitle} style={{ display: "inline-block", lineHeight: 0 }}>
+                        <a href={previewUrl} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, previewUrl)} title={previewTitle} style={{ display: "inline-block", lineHeight: 0 }}>
                           <img src={a.thumbnail_url} alt=""
                             loading="lazy"
                             referrerPolicy="no-referrer"
@@ -314,13 +316,13 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                             style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, border: "1px solid #E5E7EB", display: "block" }} />
                         </a>
                       ) : a.preview_link ? (
-                        <a href={a.preview_link} target="_blank" rel="noopener noreferrer"
+                        <a href={a.preview_link} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, a.preview_link)}
                           title={previewTitle}
                           style={{ color: "#2E7D4F", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
                           Preview ↗
                         </a>
                       ) : managerUrl ? (
-                        <a href={managerUrl} target="_blank" rel="noopener noreferrer"
+                        <a href={managerUrl} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, managerUrl)}
                           title={previewTitle}
                           style={{ color: "#9CA3AF", textDecoration: "none", fontSize: 10, fontWeight: 600 }}>
                           Manager ↗
@@ -356,16 +358,6 @@ let HAS_NC = true;
 // Set from the manifest: true when per-ad visitor counts are present.
 let HAS_NV = false;
 
-// Ads Manager link that opens the ad inside its own ad account and the Natural Rems
-// business, so viewers with several businesses don't land in their personal one.
-const NR_BUSINESS = "1824899207956323";
-function adsManagerUrl(account, adIds) {
-  const ids = (adIds || []).filter(Boolean);
-  if (!ids.length) return null;
-  const act = String(account || "act_944402037249956").replace(/^act_/, "");
-  // The ad's edit view shows its preview and also opens archived/deleted ads.
-  return `https://adsmanager.facebook.com/adsmanager/manage/ads/edit/standalone?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&selected_ad_ids=${ids[0]}`;
-}
 const pct2 = v => v == null ? "—" : `${v.toFixed(2)}%`;
 
 // Global "compare with previous period": App fills CMP each render; tables read it.
@@ -1097,6 +1089,10 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+        )}
+
+        {tab === "Attribution" && (
+          <Attribution attr={manifest.attr} days={manifest.days || []} start={isoOf(dateStart)} end={isoOf(dateEnd)} />
         )}
 
         {tab === "Win Rate" && (

@@ -123,11 +123,13 @@ def main():
                    sum(spend) AS spend, sum(order_revenue) AS rev, sum(orders_quantity) AS orders,
                    sum(new_customer_order_revenue) AS nc_rev, sum(new_customer_orders) AS nc_orders,
                    sum(new_visitors) AS nv, sum(unique_visitors) AS vis,
-                   sum(impressions) AS imps, sum(outbound_clicks) AS clk
+                   sum(impressions) AS imps, sum(outbound_clicks) AS clk,
+                   sum(channel_reported_conversion_value) AS meta_rev,
+                   sum(channel_reported_conversions) AS meta_orders
             FROM pixel_joined_tvf()
             WHERE {BASE_WHERE} AND event_date BETWEEN '{cs}' AND '{ce}'
             GROUP BY ad_id, d
-            HAVING spend > 0 OR rev > 0""", cs.isoformat(), ce.isoformat(), key)
+            HAVING spend > 0 OR rev > 0 OR meta_rev > 0""", cs.isoformat(), ce.isoformat(), key)
         print(f"  daily {cs} → {ce}: {len(rows)} rows")
         daily += rows
 
@@ -186,6 +188,14 @@ def main():
         for r in sorted(daily, key=lambda r: (str(r["ad_id"]), r["d"])):
             fh.write(";".join([str(r["ad_id"]), r["d"][:10]] + [fmt(r[k]) for k in
                      ("spend", "rev", "orders", "nc_rev", "nc_orders", "nv", "vis", "imps", "clk")]) + "\n")
+
+    # Meta-reported revenue / purchases per ad per day (Attribution tab), kept in
+    # its own file so tw_daily.csv keeps the column layout the build expects.
+    with open(out / "tw_daily_meta.csv", "w") as fh:
+        fh.write("ad_id;date;meta_rev;meta_orders\n")
+        for r in sorted(daily, key=lambda r: (str(r["ad_id"]), r["d"])):
+            if f(r.get("meta_rev")) or f(r.get("meta_orders")):
+                fh.write(";".join([str(r["ad_id"]), r["d"][:10], fmt(r.get("meta_rev")), fmt(r.get("meta_orders"))]) + "\n")
 
     wk = defaultdict(lambda: [0.0] * 4)
     for r in daily:
