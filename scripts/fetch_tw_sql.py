@@ -144,6 +144,23 @@ def main():
         WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}'
         GROUP BY ad_id HAVING spend > 0""", s, e, key)
     print(f"  ads: {len(meta)}")
+    # Campaign / ad set IDs per ad (Attribution tab links). Optional: a failure
+    # here never stops the refresh.
+    try:
+        ids = sql(f"""
+            SELECT ad_id, argMax(toString(campaign_id), event_date) AS campaign_id,
+                   argMax(toString(adset_id), event_date) AS adset_id
+            FROM pixel_joined_tvf()
+            WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}'
+            GROUP BY ad_id""", s, e, key)
+    except SystemExit as err:
+        print(f"WARNING campaign/ad set IDs skipped ({err})")
+        ids = []
+    with open(out / "tw_ids.csv", "w") as fh:
+        fh.write("ad_id;campaign_id;adset_id\n")
+        for r in ids:
+            fh.write(f"{r['ad_id']};{r.get('campaign_id') or ''};{r.get('adset_id') or ''}\n")
+    print(f"  ids: {len(ids)}")
 
     # Which ad accounts Triple Whale actually has spend for (all of the shop's
     # Facebook accounts, not only ours), so a missing connection shows up in the log.

@@ -19,3 +19,12 @@ export function adsManagerUrl(account, adIds) {
   // The ad's edit view shows its preview and also opens archived/deleted ads.
   return `https://adsmanager.facebook.com/adsmanager/manage/ads/edit/standalone?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&selected_ad_ids=${ids[0]}`;
 }
+
+// Campaign / ad set in Ads Manager (edit view: opens archived ones too).
+function levelUrl(level, account, id) {
+  if (!id) return null;
+  const act = String(account || "act_944402037249956").replace(/^act_/, "");
+  return `https://adsmanager.facebook.com/adsmanager/manage/${level}s/edit/standalone?act=${act}&business_id=${NR_BUSINESS}&global_scope_id=${NR_BUSINESS}&selected_${level}_ids=${id}`;
+}
+export const campaignUrl = (account, id) => levelUrl("campaign", account, id);
+export const adsetUrl = (account, id) => levelUrl("adset", account, id);

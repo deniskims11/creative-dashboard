@@ -467,7 +467,7 @@ def build_attribution(meta_csv, daily_path, launch_path, days):
     (same shape as the Bloom & Bond dashboard's manifest.attr).
 
     Ad dd rows: [dayIdx, spend, meta_rev, meta_orders, px_rev, px_orders, imps, clk,
-                 nc_rev, nc_orders, lpv, view, atc, ic] (no Meta connection, so the
+                 nc_rev, nc_orders, lpv, view, atc, ic, new_visitors, visitors] (no Meta connection, so the
     funnel slots stay 0). Status: spent on either of the last two days of data."""
     if not daily_path or not daily_path.exists() or not days:
         return None
@@ -477,11 +477,12 @@ def build_attribution(meta_csv, daily_path, launch_path, days):
                                     "nc_orders", "new_visitors", "visitors", "impressions", "clicks"]):
         if r["date"] in didx:
             per[r["ad_id"]][didx[r["date"]]] = [num(r["spend"]), 0.0, 0.0, num(r["rev"]), num(r["orders"]),
-                                                num(r["impressions"]), num(r["clicks"]), num(r["nc_rev"]), num(r["nc_orders"])]
+                                                num(r["impressions"]), num(r["clicks"]), num(r["nc_rev"]), num(r["nc_orders"]),
+                                                num(r["new_visitors"]), num(r["visitors"])]
     mp = daily_path.parent / "tw_daily_meta.csv"
     for r in load_semi(mp, ["ad_id", "date", "meta_rev", "meta_orders"]):
         if r["date"] in didx:
-            row = per[r["ad_id"]].setdefault(didx[r["date"]], [0.0] * 9)
+            row = per[r["ad_id"]].setdefault(didx[r["date"]], [0.0] * 11)
             row[1], row[2] = num(r["meta_rev"]), num(r["meta_orders"])
     info = {}
     for r in csv.DictReader(open(meta_csv, encoding="utf-8-sig")):
@@ -490,21 +491,26 @@ def build_attribution(meta_csv, daily_path, launch_path, days):
     img = {r["ad_id"]: r.get("image_url") or "" for r in load_semi(launch_path, ["ad_id", "first_day", "spend_d14",
                                                                                   "rev_d14", "nc_rev_d14", "image_url"])}
     last = {len(days) - 1, len(days) - 2}
+    tw_ids = {}
+    for r in load_semi(daily_path.parent / "tw_ids.csv", ["ad_id", "campaign_id", "adset_id"]):
+        tw_ids[r["ad_id"]] = (r["campaign_id"] if r["campaign_id"] not in ("", "0") else "",
+                              r["adset_id"] if r["adset_id"] not in ("", "0") else "")
     camps, sets, out_ads = {}, {}, []
     for ad_id, dd_ in per.items():
         r = info.get(ad_id, {})
         cname = r.get("Campaign name") or "(no campaign)"
         sname = r.get("Ad set name") or "(no ad set)"
         acct = (r.get("Account ID") or "").replace("act_", "")
-        ck = f"{acct}|{cname}"
+        cid, sid = tw_ids.get(ad_id, ("", ""))
+        ck = cid or f"{acct}|{cname}"
         if ck not in camps:
-            camps[ck] = [len(camps), ck, cname, "", None, None]
-        sk = f"{ck}|{sname}"
+            camps[ck] = [len(camps), ck, cname, "", None, None, cid]
+        sk = sid or f"{ck}|{sname}"
         if sk not in sets:
-            sets[sk] = [len(sets), sk, sname, camps[ck][0], "", None, None]
+            sets[sk] = [len(sets), sk, sname, camps[ck][0], "", None, None, sid]
         dd = []
         for k in sorted(dd_):
-            row = dd_[k] + [0, 0, 0, 0]
+            row = dd_[k][:9] + [0, 0, 0, 0] + dd_[k][9:]
             if any(row):
                 dd.append([k] + [round(x, 2) if x != int(x) else int(x) for x in row])
         if not dd:
@@ -518,7 +524,7 @@ def build_attribution(meta_csv, daily_path, launch_path, days):
         "tw_label": "Triple Whale pixel, Triple Attribution, 7-day",
         "note": "Meta-reported numbers come through Triple Whale.",
         "fields": ["spend", "meta_rev", "meta_conv", "px_rev", "px_orders", "imps", "clk", "nc_rev", "nc_orders",
-                   "lpv", "view", "atc", "ic"],
+                   "lpv", "view", "atc", "ic", "nv", "vis"],
     }
 
 

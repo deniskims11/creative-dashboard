@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from "recharts";
-import { openExternal, adsManagerUrl } from "./links.js";
+import { openExternal, adsManagerUrl, campaignUrl, adsetUrl } from "./links.js";
 
 // Attribution (Meta), modelled on Moby's Attribution › Meta page: four chart cards
 // for the selected date range, then a Campaigns / Ad Sets / Ads table with the
@@ -10,7 +10,7 @@ import { openExternal, adsManagerUrl } from "./links.js";
 //   campaigns: [key, name, status, daily_budget, lifetime_budget]
 //   adsets:    [key, name, campaignIdx, status, daily_budget, lifetime_budget]
 //   ads:       [ad_id, name, adsetIdx, status, account, dd]
-//   dd rows:   [dayIdx, spend, meta_rev, meta_conv, px_rev, px_orders, imps, clk, nc_rev, nc_orders, lpv, view, atc, ic]
+//   dd rows:   [dayIdx, spend, meta_rev, meta_conv, px_rev, px_orders, imps, clk, nc_rev, nc_orders, lpv, view, atc, ic, new_visitors, visitors]
 
 const META = "#0284C7";
 const TW = "#399844";
@@ -25,7 +25,7 @@ const pct = v => (v == null ? "—" : `${v.toFixed(2)}%`);
 const int = v => (v == null ? "—" : Math.round(v).toLocaleString());
 const shortDay = iso => { const d = new Date(iso + "T00:00:00Z"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }); };
 
-const N = 13; // metric slots per dd row (after dayIdx)
+const N = 15; // metric slots per dd row (after dayIdx)
 const zero = () => new Array(N).fill(0);
 const add = (t, r) => { for (let j = 0; j < N; j++) t[j] += r[j + 1] || 0; };
 
@@ -34,7 +34,8 @@ function kpis(v) {
   const [spend, mrev, mord, prev, pord, imps, clk] = v;
   return {
     spend, mrev, mord, prev, pord, imps, clk,
-    lpv: v[9], view: v[10], atc: v[11], ic: v[12],
+    lpv: v[9], view: v[10], atc: v[11], ic: v[12], nv: v[13], vis: v[14],
+    nvp: v[14] ? (v[13] / v[14]) * 100 : null,
     mroas: spend ? mrev / spend : null, proas: spend ? prev / spend : null,
     mcpa: mord ? spend / mord : null, pcpa: pord ? spend / pord : null,
     ctr: imps ? (clk / imps) * 100 : null, cpc: clk ? spend / clk : null,
@@ -123,15 +124,19 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
   // Per-ad totals for the range, then ad set / campaign roll-ups.
   const tree = useMemo(() => {
     if (!attr) return null;
-    const camps = attr.campaigns.map((c, i) => ({ kind: "c", i, key: `c:${i}`, name: c[1], status: c[2], db: c[3], lb: c[4], v: zero(), kids: [], ads: [] }));
-    const sets = attr.adsets.map((s, i) => ({ kind: "s", i, key: `s:${i}`, name: s[1], ci: s[2], status: s[3], db: s[4], lb: s[5], v: zero(), kids: [] }));
+    const camps = attr.campaigns.map((c, i) => ({ kind: "c", i, key: `c:${i}`, name: c[1], status: c[2], db: c[3], lb: c[4], id: c[5] || "", v: zero(), kids: [], ads: [] }));
+    const sets = attr.adsets.map((s, i) => ({ kind: "s", i, key: `s:${i}`, name: s[1], ci: s[2], status: s[3], db: s[4], lb: s[5], id: s[6] || "", v: zero(), kids: [] }));
     for (const s of sets) camps[s.ci]?.kids.push(s);
     const ads = attr.ads.map((a, i) => {
       const v = zero();
       for (const r of a[5]) if (r[0] >= lo && r[0] <= hi) add(v, r);
       const set = sets[a[2]];
       const node = { kind: "a", i, key: `a:${i}`, id: a[0], name: a[1], si: a[2], ci: set?.ci, status: a[3], account: a[4], v, dd: a[5], img: a[6] || "" };
-      if (set) { set.kids.push(node); for (let j = 0; j < N; j++) set.v[j] += v[j]; }
+      if (set) {
+        set.kids.push(node); for (let j = 0; j < N; j++) set.v[j] += v[j];
+        if (!set.account && node.account) set.account = node.account;
+        const c = camps[set.ci]; if (c && !c.account && node.account) c.account = node.account;
+      }
       return node;
     });
     for (const s of sets) { const c = camps[s.ci]; if (c) for (let j = 0; j < N; j++) c.v[j] += s.v[j]; }
@@ -187,6 +192,7 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
     ["pord", "Orders", n => int(n.m.pord), "tw"], ["mord", "Orders", n => int(n.m.mord), "meta"],
     ["ctr", "CTR", n => pct(n.m.ctr)], ["cpc", "CPC", n => money(n.m.cpc)],
     ["cpm", "CPM", n => money(n.m.cpm)], ["cvr", "CVR", n => pct(n.m.cvr)],
+    ["nvp", "% New Vis.", n => (n.m.nvp == null ? "—" : `${n.m.nvp.toFixed(1)}%`), "tw"],
   ];
   const th = { padding: "9px 10px", fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.4, textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", borderBottom: `2px solid ${LINE}`, background: "#F9FAFB", position: "sticky", top: 0 };
   const td = { padding: "8px 10px", fontSize: 12, textAlign: "right", whiteSpace: "nowrap", borderBottom: `1px solid #F3F4F6`, color: INK, fontVariantNumeric: "tabular-nums" };
@@ -220,6 +226,7 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
   const LINES = {
     cpc: ["CPC (outbound)", money], cvr: ["CVR", v => pct(v)], ctr: ["CTR (outbound)", v => pct(v)],
     cpm: ["CPM", money], mcpa: ["CPA (Meta)", money], maov: ["AOV (Meta)", money],
+    nvp: ["% New Visitors", v => (v == null ? "—" : `${v.toFixed(1)}%`)],
   };
   const pickedNote = picked.size ? `${picked.size} row${picked.size > 1 ? "s" : ""} ticked` : "All Meta";
 
@@ -334,7 +341,7 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
             <ComposedChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#F1F3F2" vertical={false} />
               <XAxis dataKey="label" tick={axis} minTickGap={18} />
-              <YAxis tick={axis} width={42} tickFormatter={v => (["cvr", "ctr"].includes(lineMetric) ? `${v.toFixed(1)}%` : `$${v >= 100 ? Math.round(v) : v.toFixed(1)}`)} />
+              <YAxis tick={axis} width={42} tickFormatter={v => (["cvr", "ctr", "nvp"].includes(lineMetric) ? `${v.toFixed(1)}%` : `$${v >= 100 ? Math.round(v) : v.toFixed(1)}`)} />
               <Tooltip content={<TipBox rows={[[lineMetric, LINES[lineMetric][0], LINES[lineMetric][1], "#7C3AED"]]} />} />
               <Line type="monotone" dataKey={lineMetric} stroke="#7C3AED" strokeWidth={2} dot={series.length < 3 ? { r: 4 } : false} connectNulls />
             </ComposedChart>
@@ -378,7 +385,8 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
             </thead>
             <tbody>
               {rowsOut.map(({ n, depth, canOpen }) => {
-                const url = n.kind === "a" ? adsManagerUrl(n.account, [n.id]) : null;
+                const url = n.kind === "a" ? adsManagerUrl(n.account, [n.id])
+                  : n.id ? (n.kind === "c" ? campaignUrl(n.account, n.id) : adsetUrl(n.account, n.id)) : null;
                 const isPicked = picked.has(n.key);
                 return (
                   <tr key={n.key} style={{ background: isPicked ? "#F0F7EC" : depth ? "#FBFCFB" : "#fff" }}>
