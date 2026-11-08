@@ -1,8 +1,7 @@
 name: Deploy to GitHub Pages
 
 # Every run pulls fresh data from the Triple Whale SQL API (when the TW_API_KEY
-# secret is set), rebuilds the manifest and publishes. Without the secret it
-# deploys the committed public/data/latest.json as before.
+# secret is set), rebuilds the manifest, encrypts it (DASHBOARD_PASSWORD) and publishes.
 on:
   push:
     branches: [main]
@@ -53,6 +52,12 @@ jobs:
           else
             python3 scripts/fetch_tw_sql.py --days 120
           fi
+
+      # Published data is always encrypted; the deploy fails without the secret.
+      - name: Encrypt data
+        env:
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+        run: python3 scripts/encrypt_data.py
 
       - uses: actions/setup-node@v4
         with:

@@ -7,3 +7,5 @@ dist
 .vscode
 .idea
 raw/
+public/data/latest.json
+public/data/history/
