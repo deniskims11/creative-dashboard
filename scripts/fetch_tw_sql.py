@@ -165,14 +165,14 @@ def main():
     # Ad video URLs (in-dashboard player). Optional: a failure never stops the refresh.
     try:
         vids = sql(f"""
-            SELECT ad_id, argMax(video_url, event_date) AS video_url
+            SELECT ad_id, argMaxIf(video_url, event_date, video_url != '') AS vurl
             FROM pixel_joined_tvf()
-            WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}' AND video_url != ''
+            WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}'
             GROUP BY ad_id""", s, e, key)
     except SystemExit as err:
         print(f"WARNING video URLs skipped ({err})")
         vids = []
-    vmap = {r["ad_id"]: r["video_url"] for r in vids if r.get("video_url")}
+    vmap = {r["ad_id"]: r["vurl"] for r in vids if r.get("vurl")}
     (out / "tw_video.json").write_text(json.dumps(vmap))
     from urllib.parse import urlparse
     hosts = defaultdict(int)
