@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { openExternal } from "./links.js";
 
+// Direct video files play here; facebook.com video pages only play inside Meta.
+export const playable = url => !!url && !/facebook\.com|fb\.watch/.test(url);
+
 // In-dashboard ad preview: plays the ad's video (Triple Whale video_url), or shows
 // the image for static ads, with a button to the ad in Ads Manager.
 export default function AdPreview({ ad, onClose }) {
@@ -12,7 +15,7 @@ export default function AdPreview({ ad, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [ad, onClose]);
   if (!ad) return null;
-  const video = ad.video && !failed;
+  const video = playable(ad.video) && !failed;
   return (
     <div onClick={e => { e.stopPropagation(); onClose(); }} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(17,24,39,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 440, maxHeight: "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
@@ -30,7 +33,7 @@ export default function AdPreview({ ad, onClose }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderTop: "1px solid #E5E7EB" }}>
           <span style={{ flex: 1, fontSize: 11, color: "#6B7280" }}>
-            {ad.video ? (failed ? "This video can't play here (link expired). Open it in Ads Manager." : "Video starts muted; use the speaker icon for sound.") : "Static ad (no video)."}
+            {video ? "Video starts muted; use the speaker icon for sound." : ad.video ? "This video only plays inside Meta. Open it in Ads Manager." : "Static ad (no video)."}
           </span>
           {ad.managerUrl && (
             <a href={ad.managerUrl} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, ad.managerUrl)}

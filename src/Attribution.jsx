@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from "recharts";
 import { openExternal, adsManagerUrl, campaignUrl, adsetUrl } from "./links.js";
-import AdPreview, { PlayBadge } from "./AdPreview.jsx";
+import AdPreview, { PlayBadge, playable } from "./AdPreview.jsx";
 
 // Attribution (Meta), modelled on Moby's Attribution › Meta page: four chart cards
 // for the selected date range, then a Campaigns / Ad Sets / Ads table with the
@@ -462,11 +462,11 @@ export default function Attribution({ attr, days, start, end, accent = "var(--nr
                     <td style={{ ...td, textAlign: "center", padding: "4px 8px", width: 56 }}>
                       {n.kind === "a" && n.img ? (
                         <button onClick={() => setPreview({ name: n.name, image: n.img, video: n.video, managerUrl: url })}
-                          title={n.video ? "Play the video" : "View the ad"} style={{ position: "relative", display: "inline-block", lineHeight: 0, padding: 0, border: "none", background: "none", cursor: "pointer" }}>
+                          title={playable(n.video) ? "Play the video" : "View the ad"} style={{ position: "relative", display: "inline-block", lineHeight: 0, padding: 0, border: "none", background: "none", cursor: "pointer" }}>
                           <img src={n.img} alt="" loading="lazy" referrerPolicy="no-referrer"
                             onError={e => { e.currentTarget.style.display = "none"; }}
                             style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, border: `1px solid ${LINE}`, display: "block" }} />
-                          {n.video && <PlayBadge />}
+                          {playable(n.video) && <PlayBadge />}
                         </button>
                       ) : null}
                     </td>

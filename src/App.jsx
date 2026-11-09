@@ -3,7 +3,7 @@ import SpendMix from "./SpendMix.jsx";
 import NvpLedger from "./NvpLedger.jsx";
 import Attribution from "./Attribution.jsx";
 import { openExternal, adsManagerUrl } from "./links.js";
-import AdPreview, { PlayBadge } from "./AdPreview.jsx";
+import AdPreview, { PlayBadge, playable } from "./AdPreview.jsx";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -301,7 +301,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                     <td style={{ ...td, textAlign: "center", width: 72 }}>
                       {a.thumbnail_url && previewUrl ? (
                         <button onClick={() => setPreview({ name: a.ad_name, image: a.thumbnail_url, video: a.video_url, managerUrl: previewUrl })}
-                          title={a.video_url ? "Play the video" : "View the ad"} style={{ position: "relative", display: "inline-block", lineHeight: 0, padding: 0, border: "none", background: "none", cursor: "pointer" }}>
+                          title={playable(a.video_url) ? "Play the video" : "View the ad"} style={{ position: "relative", display: "inline-block", lineHeight: 0, padding: 0, border: "none", background: "none", cursor: "pointer" }}>
                           <img src={a.thumbnail_url} alt=""
                             loading="lazy"
                             referrerPolicy="no-referrer"
@@ -317,7 +317,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                               el.parentElement.textContent = "View ▸";
                             }}
                             style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, border: "1px solid #E5E7EB", display: "block" }} />
-                          {a.video_url && <PlayBadge />}
+                          {playable(a.video_url) && <PlayBadge />}
                         </button>
                       ) : a.preview_link ? (
                         <a href={a.preview_link} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, a.preview_link)}
