@@ -71,7 +71,7 @@ export function aggregate(ads) {
     ...tot,
     roas: tot.spend ? tot.rev / tot.spend : 0,
     pixel_roas: tot.spend ? tot.pixel_rev / tot.spend : 0,
-    ncroas: tot.spend ? tot.nc_rev / tot.spend : 0,
+    ncroas: tot.spend ? tot.nc_rev / tot.spend : null,
     nccpa: tot.nc_txns ? tot.spend / tot.nc_txns : null,
     cpm: tot.impressions ? (tot.spend / tot.impressions) * 1000 : 0,
     cpc: tot.clicks ? tot.spend / tot.clicks : null,

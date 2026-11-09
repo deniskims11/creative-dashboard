@@ -131,7 +131,9 @@ function periodAds(ads, days, startYy, endYy) {
       for (let j = 0; j < 9; j++) t[j] += r[j + 1];
     }
     const [spend, rev, txns, nc_rev, nc_txns, nv, vis, imps, clicks] = t;
-    if (spend <= 0 && rev <= 0) continue;
+    // Keep creatives with any activity in the range (late new-customer revenue or visits
+    // can land on days without spend).
+    if (spend <= 0 && rev <= 0 && nc_rev <= 0 && txns <= 0 && nc_txns <= 0 && vis <= 0 && clicks <= 0 && imps <= 0) continue;
     const m = {
       ...a.metrics, spend, rev, txns, pixel_rev: rev, pixel_txns: txns, nc_rev, nc_txns,
       new_visitors: nv, visitors: vis, impressions: imps, clicks,
