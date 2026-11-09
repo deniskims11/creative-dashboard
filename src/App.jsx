@@ -3,6 +3,7 @@ import SpendMix from "./SpendMix.jsx";
 import NvpLedger from "./NvpLedger.jsx";
 import Attribution from "./Attribution.jsx";
 import { openExternal, adsManagerUrl } from "./links.js";
+import AdPreview, { PlayBadge } from "./AdPreview.jsx";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -185,6 +186,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
   const [sort, setSort] = useState({ col: "spend", dir: "desc" });
   const [mode, setMode] = useState("ads");
   const [focus, setFocus] = useState(null); // one ad shown by day
+  const [preview, setPreview] = useState(null); // in-dashboard ad player
   useEffect(() => { setMode(initialMode || "ads"); setFocus(null); }, [open, title, initialMode]);
   const sortedAds = useMemo(() => {
     if (!ads) return [];
@@ -298,7 +300,8 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                       {a.ad_name}</td>
                     <td style={{ ...td, textAlign: "center", width: 72 }}>
                       {a.thumbnail_url && previewUrl ? (
-                        <a href={previewUrl} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, previewUrl)} title={previewTitle} style={{ display: "inline-block", lineHeight: 0 }}>
+                        <button onClick={() => setPreview({ name: a.ad_name, image: a.thumbnail_url, video: a.video_url, managerUrl: previewUrl })}
+                          title={a.video_url ? "Play the video" : "View the ad"} style={{ position: "relative", display: "inline-block", lineHeight: 0, padding: 0, border: "none", background: "none", cursor: "pointer" }}>
                           <img src={a.thumbnail_url} alt=""
                             loading="lazy"
                             referrerPolicy="no-referrer"
@@ -311,10 +314,11 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
                               const i = Number(el.dataset.ci || 0) + 1;
                               if (i < cands.length) { el.dataset.ci = i; el.src = cands[i]; return; }
                               el.style.display = "none";
-                              el.parentElement.textContent = "Manager ↗";
+                              el.parentElement.textContent = "View ▸";
                             }}
                             style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, border: "1px solid #E5E7EB", display: "block" }} />
-                        </a>
+                          {a.video_url && <PlayBadge />}
+                        </button>
                       ) : a.preview_link ? (
                         <a href={a.preview_link} target="_blank" rel="noopener noreferrer" onClick={e => openExternal(e, a.preview_link)}
                           title={previewTitle}
@@ -347,6 +351,7 @@ function AdListModal({ open, title, subtitle, ads, onClose, days, range, initial
           {sortedAds.length > 500 && <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 12, textAlign: "center" }}>Showing top 500 — CSV export includes all {sortedAds.length.toLocaleString()}.</p>}
           </>)}
         </div>
+        <AdPreview ad={preview} onClose={() => setPreview(null)} />
       </div>
     </div>
   );

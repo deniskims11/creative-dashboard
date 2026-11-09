@@ -52,6 +52,7 @@ def ads_manager_url(account, ad_id):
     return (f"https://adsmanager.facebook.com/adsmanager/manage/ads/edit/standalone?act={act}"
             f"&business_id={NR_BUSINESS}&global_scope_id={NR_BUSINESS}&selected_ad_ids={ad_id}")
 THUMB_CDN = "https://files.triplewhale.com/thumbnails/facebook-ads"
+VIDEOS = {}  # Meta ad ID -> video URL (raw/tw_video.json, from fetch_tw_sql.py)
 TAXONOMY = ["creative_no", "product", "angle", "sub_angle", "concept", "icp",
             "script", "format", "awareness_stage"]
 EXTRA = ["strategist", "editor", "hook"]
@@ -361,6 +362,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
                 v = wk[widx[r["week"]]]
                 v[0] += num(r["spend"]); v[1] += num(r["rev"]); v[2] += num(r["nc_rev"]); v[3] += num(r["nc_orders"])
         image = next((t["image_url"] for t in lr if t.get("image_url")), None)
+        video = next((VIDEOS[i] for i in ad_ids if VIDEOS.get(i)), None)
 
         tags["awareness_stage"] = norm_awareness(tags.get("awareness_stage"))
         funnel = (nr and nr["funnel"]) or FUNNEL_OF.get(tags.get("awareness_stage"))
@@ -387,6 +389,7 @@ def build(csv_path, master_path, tw_path=None, launch_path=None, weekly_path=Non
             "thumbnail_candidates": ([image] if image else []) + [f"{THUMB_CDN}/{acct}/{i}.jpg" for i in ad_ids[:2]],
             "thumbnail_url": image or f"{THUMB_CDN}/{acct}/{ad_ids[0]}.jpg",
             "preview_link": ads_manager_url(acct, ad_ids[0]),
+            "video_url": video,
         }
         ads.append(rec)
 
@@ -516,7 +519,8 @@ def build_attribution(meta_csv, daily_path, launch_path, days):
         if not dd:
             continue
         status = "SPENDING" if any(x[0] in last and x[1] > 0 for x in dd) else "IDLE"
-        out_ads.append([ad_id, r.get("Ad name") or ad_id, sets[sk][0], status, acct, dd, img.get(ad_id, "")])
+        out_ads.append([ad_id, r.get("Ad name") or ad_id, sets[sk][0], status, acct, dd, img.get(ad_id, ""),
+                        VIDEOS.get(ad_id, "")])
     return {
         "campaigns": [v[1:] for v in sorted(camps.values())],
         "adsets": [v[1:] for v in sorted(sets.values())],
@@ -537,6 +541,9 @@ def main():
         sys.exit("usage: build_from_meta_csv.py <meta.csv> [MASTER.xlsx] [tw_ads.csv] "
                  "[tw_launch_d14.csv] [tw_weekly.csv]")
     src = pathlib.Path(sys.argv[1])
+    vp = src.parent / "tw_video.json"
+    if vp.exists():
+        VIDEOS.update(json.loads(vp.read_text()))
     master = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else None
     twp = pathlib.Path(sys.argv[3]) if len(sys.argv) > 3 else None
     lp = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else None

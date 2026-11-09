@@ -162,6 +162,24 @@ def main():
             fh.write(f"{r['ad_id']};{r.get('campaign_id') or ''};{r.get('adset_id') or ''}\n")
     print(f"  ids: {len(ids)}")
 
+    # Ad video URLs (in-dashboard player). Optional: a failure never stops the refresh.
+    try:
+        vids = sql(f"""
+            SELECT ad_id, argMax(video_url, event_date) AS video_url
+            FROM pixel_joined_tvf()
+            WHERE {BASE_WHERE} AND event_date BETWEEN '{s}' AND '{e}' AND video_url != ''
+            GROUP BY ad_id""", s, e, key)
+    except SystemExit as err:
+        print(f"WARNING video URLs skipped ({err})")
+        vids = []
+    vmap = {r["ad_id"]: r["video_url"] for r in vids if r.get("video_url")}
+    (out / "tw_video.json").write_text(json.dumps(vmap))
+    from urllib.parse import urlparse
+    hosts = defaultdict(int)
+    for u in vmap.values():
+        hosts[(urlparse(u).hostname or "?").split(".", 1)[-1] + (" .mp4" if ".mp4" in u else "")] += 1
+    print(f"  videos: {len(vmap)} {dict(hosts)}")
+
     # Which ad accounts Triple Whale actually has spend for (all of the shop's
     # Facebook accounts, not only ours), so a missing connection shows up in the log.
     acc = sql(f"""
